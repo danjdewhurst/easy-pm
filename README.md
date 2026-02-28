@@ -6,7 +6,12 @@
 
 Built with [Bun](https://bun.sh), SQLite, React, and Tailwind CSS.
 
+[![CI](https://github.com/danjdewhurst/easy-pm/actions/workflows/ci.yml/badge.svg)](https://github.com/danjdewhurst/easy-pm/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Bun](https://img.shields.io/badge/Bun-%23000000.svg?logo=bun&logoColor=white)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)](https://sqlite.org)
 
 </div>
 
