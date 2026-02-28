@@ -28,3 +28,10 @@ export class AuthError extends AppError {
 		this.name = "AuthError";
 	}
 }
+
+export class ForbiddenError extends AppError {
+	constructor(message = "Forbidden") {
+		super(message, 403);
+		this.name = "ForbiddenError";
+	}
+}

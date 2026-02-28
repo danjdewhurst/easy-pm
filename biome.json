@@ -23,6 +23,7 @@
 			"a11y": {
 				"noSvgWithoutTitle": "warn",
 				"useButtonType": "warn",
+				"useSemanticElements": "warn",
 				"noStaticElementInteractions": "warn",
 				"useKeyWithClickEvents": "warn",
 				"noLabelWithoutControl": "warn"

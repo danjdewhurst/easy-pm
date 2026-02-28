@@ -12,21 +12,40 @@ export class ApiClient {
 		body?: unknown,
 	): Promise<ApiResponse<T>> {
 		const url = `${this.baseUrl}${path}`;
-		const headers: Record<string, string> = {
-			"Content-Type": "application/json",
-		};
+		const headers: Record<string, string> = {};
+
+		if (body !== undefined) {
+			headers["Content-Type"] = "application/json";
+		}
 
 		if (this.token) {
 			headers.Authorization = `Bearer ${this.token}`;
 		}
 
-		const res = await fetch(url, {
-			method,
-			headers,
-			body: body ? JSON.stringify(body) : undefined,
-		});
+		let res: Response;
+		try {
+			res = await fetch(url, {
+				method,
+				headers,
+				body: body !== undefined ? JSON.stringify(body) : undefined,
+			});
+		} catch (err) {
+			const message = err instanceof Error ? err.message : "Network error";
+			return {
+				ok: false,
+				error: `Connection failed: ${message}`,
+			} as ApiResponse<T>;
+		}
 
-		return res.json() as Promise<ApiResponse<T>>;
+		const text = await res.text();
+		try {
+			return JSON.parse(text) as ApiResponse<T>;
+		} catch {
+			return {
+				ok: false,
+				error: `Server returned non-JSON response (${res.status}): ${text.slice(0, 200)}`,
+			} as ApiResponse<T>;
+		}
 	}
 
 	get<T>(path: string): Promise<ApiResponse<T>> {

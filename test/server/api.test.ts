@@ -9,6 +9,7 @@ import {
 import { errorResponse } from "../../src/server/middleware.ts";
 import {
 	api,
+	apiAsUser2,
 	apiJson,
 	resetTestDb,
 	setupTestServer,
@@ -782,6 +783,117 @@ describe("Cascade Deletes", () => {
 
 		const cardRes = await api("/api/cards/1");
 		expect(cardRes.status).toBe(404);
+	});
+});
+
+// ─── Cross-User Isolation ────────────────────────────────────────
+
+describe("Cross-User Isolation", () => {
+	test("user cannot see other user's projects", async () => {
+		// User 1 creates a project
+		await api("/api/projects", {
+			method: "POST",
+			body: JSON.stringify({ name: "User1 Project" }),
+		});
+
+		// User 2 should see empty list
+		const res = await apiAsUser2("/api/projects");
+		const body = await apiJson<unknown[]>(res);
+		expect(body.data).toEqual([]);
+	});
+
+	test("user cannot get other user's project", async () => {
+		await api("/api/projects", {
+			method: "POST",
+			body: JSON.stringify({ name: "User1 Project" }),
+		});
+
+		const res = await apiAsUser2("/api/projects/1");
+		expect(res.status).toBe(404);
+	});
+
+	test("user cannot update other user's project", async () => {
+		await api("/api/projects", {
+			method: "POST",
+			body: JSON.stringify({ name: "User1 Project" }),
+		});
+
+		const res = await apiAsUser2("/api/projects/1", {
+			method: "PUT",
+			body: JSON.stringify({ name: "Hacked" }),
+		});
+		expect(res.status).toBe(403);
+	});
+
+	test("user cannot delete other user's project", async () => {
+		await api("/api/projects", {
+			method: "POST",
+			body: JSON.stringify({ name: "User1 Project" }),
+		});
+
+		const res = await apiAsUser2("/api/projects/1", { method: "DELETE" });
+		expect(res.status).toBe(403);
+	});
+
+	test("user cannot access other user's board", async () => {
+		await api("/api/projects", {
+			method: "POST",
+			body: JSON.stringify({ name: "P1" }),
+		});
+		await api("/api/projects/1/boards", {
+			method: "POST",
+			body: JSON.stringify({ name: "B1" }),
+		});
+
+		const res = await apiAsUser2("/api/boards/1");
+		expect(res.status).toBe(403);
+	});
+
+	test("user cannot access other user's cards", async () => {
+		await api("/api/projects", {
+			method: "POST",
+			body: JSON.stringify({ name: "P1" }),
+		});
+		await api("/api/projects/1/boards", {
+			method: "POST",
+			body: JSON.stringify({ name: "B1" }),
+		});
+		await api("/api/boards/1/columns", {
+			method: "POST",
+			body: JSON.stringify({ name: "C1" }),
+		});
+		await api("/api/columns/1/cards", {
+			method: "POST",
+			body: JSON.stringify({ title: "Secret Card" }),
+		});
+
+		const res = await apiAsUser2("/api/cards/1");
+		expect(res.status).toBe(403);
+	});
+
+	test("search only returns own user's cards", async () => {
+		// User 1 creates a card
+		await api("/api/projects", {
+			method: "POST",
+			body: JSON.stringify({ name: "P1" }),
+		});
+		await api("/api/projects/1/boards", {
+			method: "POST",
+			body: JSON.stringify({ name: "B1" }),
+		});
+		await api("/api/boards/1/columns", {
+			method: "POST",
+			body: JSON.stringify({ name: "C1" }),
+		});
+		await api("/api/columns/1/cards", {
+			method: "POST",
+			body: JSON.stringify({ title: "Secret authentication bug" }),
+		});
+
+		// User 2 searches — should find nothing
+		const res = await apiAsUser2("/api/search?q=authentication");
+		const body = await apiJson<unknown[]>(res);
+		expect(body.data).toHaveLength(0);
 	});
 });
 

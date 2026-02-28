@@ -277,10 +277,13 @@ export function createServer(port?: number) {
 				return errorResponse(error);
 			}
 		},
-		development: {
-			hmr: true,
-			console: true,
-		},
+		development:
+			process.env.NODE_ENV === "production"
+				? false
+				: {
+						hmr: true,
+						console: true,
+					},
 	});
 }
 

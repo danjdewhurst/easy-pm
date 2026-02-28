@@ -8,6 +8,7 @@ interface ColumnProps {
 	column: ColumnView;
 	labels: Label[];
 	onUpdate: () => void;
+	onError: (message: string) => void;
 	index: number;
 	dragState: DragState | null;
 	onDragStart: (cardId: number, columnId: number) => void;
@@ -19,6 +20,7 @@ export function ColumnComponent({
 	column,
 	labels,
 	onUpdate,
+	onError,
 	index,
 	dragState,
 	onDragStart,
@@ -37,17 +39,25 @@ export function ColumnComponent({
 	const handleCreateCard = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (newCardTitle.trim()) {
-			await api.createCard(column.id, newCardTitle.trim());
-			setNewCardTitle("");
-			setShowNewCard(false);
-			onUpdate();
+			try {
+				await api.createCard(column.id, newCardTitle.trim());
+				setNewCardTitle("");
+				setShowNewCard(false);
+				onUpdate();
+			} catch (err) {
+				onError(err instanceof Error ? err.message : "Failed to create card");
+			}
 		}
 	};
 
 	const handleDeleteColumn = async () => {
 		if (confirm(`Delete column "${column.name}" and all its cards?`)) {
-			await api.deleteColumn(column.id);
-			onUpdate();
+			try {
+				await api.deleteColumn(column.id);
+				onUpdate();
+			} catch (err) {
+				onError(err instanceof Error ? err.message : "Failed to delete column");
+			}
 		}
 	};
 
@@ -98,7 +108,7 @@ export function ColumnComponent({
 
 	return (
 		<div
-			className={`flex-shrink-0 w-72 rounded-xl border flex flex-col max-h-full animate-scale-in transition-colors duration-150 ${isDragOver ? "column-drag-over" : ""}`}
+			className={`group flex-shrink-0 w-72 rounded-xl border flex flex-col max-h-full animate-scale-in transition-colors duration-150 ${isDragOver ? "column-drag-over" : ""}`}
 			style={{
 				background: "var(--surface-1)",
 				borderColor: isDragOver ? "var(--accent)" : "var(--border)",
@@ -162,7 +172,6 @@ export function ColumnComponent({
 								card={card}
 								labels={labels}
 								onUpdate={onUpdate}
-								index={i}
 								columnId={column.id}
 								isDragging={dragState?.cardId === card.id}
 								onDragStart={onDragStart}
@@ -208,12 +217,12 @@ export function ColumnComponent({
 				) : (
 					<button
 						onClick={() => setShowNewCard(true)}
-						className="w-full text-left px-3 py-1.5 text-[13px] rounded-lg transition-all duration-150 group btn-press"
+						className="w-full text-left px-3 py-1.5 text-[13px] rounded-lg transition-all duration-150 group/add btn-press"
 						style={{ color: "var(--text-muted)" }}
 					>
 						<span className="flex items-center gap-1.5">
 							<svg
-								className="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-90"
+								className="w-3.5 h-3.5 transition-transform duration-200 group-hover/add:rotate-90"
 								fill="none"
 								stroke="currentColor"
 								viewBox="0 0 24 24"

@@ -1,6 +1,10 @@
 import { POSITION_GAP } from "../../shared/constants.ts";
 import { getDb } from "../../shared/db.ts";
-import { NotFoundError, ValidationError } from "../../shared/errors.ts";
+import {
+	ForbiddenError,
+	NotFoundError,
+	ValidationError,
+} from "../../shared/errors.ts";
 import type { Column } from "../../shared/types.ts";
 import {
 	parseJsonBody,
@@ -10,13 +14,50 @@ import {
 } from "../../shared/validate.ts";
 import { jsonResponse } from "../middleware.ts";
 
+function getUserId(params: Record<string, string>): number {
+	return Number(params._userId);
+}
+
+function requireBoardOwnership(boardId: string | number, userId: number): void {
+	const db = getDb();
+	const row = db
+		.query(
+			`SELECT p.user_id FROM boards b
+       JOIN projects p ON b.project_id = p.id
+       WHERE b.id = ?`,
+		)
+		.get(boardId) as { user_id: number } | null;
+	if (!row) throw new NotFoundError("Board", boardId);
+	if (row.user_id !== userId) throw new ForbiddenError();
+}
+
+function requireColumnOwnership(
+	columnId: string | number,
+	userId: number,
+): Column {
+	const db = getDb();
+	const col = db
+		.query("SELECT * FROM columns WHERE id = ?")
+		.get(columnId) as Column | null;
+	if (!col) throw new NotFoundError("Column", columnId);
+	const row = db
+		.query(
+			`SELECT p.user_id FROM boards b
+       JOIN projects p ON b.project_id = p.id
+       WHERE b.id = ?`,
+		)
+		.get(col.board_id) as { user_id: number } | null;
+	if (!row || row.user_id !== userId) throw new ForbiddenError();
+	return col;
+}
+
 export async function createColumn(
 	req: Request,
 	params: Record<string, string>,
 ): Promise<Response> {
 	const db = getDb();
-	const board = db.query("SELECT id FROM boards WHERE id = ?").get(params.id!);
-	if (!board) throw new NotFoundError("Board", params.id);
+	const userId = getUserId(params);
+	requireBoardOwnership(params.id!, userId);
 
 	const body = await parseJsonBody(req);
 	const name = validateName(body.name);
@@ -43,10 +84,8 @@ export async function updateColumn(
 	params: Record<string, string>,
 ): Promise<Response> {
 	const db = getDb();
-	const existing = db
-		.query("SELECT * FROM columns WHERE id = ?")
-		.get(params.id!) as Column | null;
-	if (!existing) throw new NotFoundError("Column", params.id);
+	const userId = getUserId(params);
+	const existing = requireColumnOwnership(params.id!, userId);
 
 	const body = await parseJsonBody(req);
 	const updates: Record<string, unknown> = {};
@@ -56,14 +95,20 @@ export async function updateColumn(
 
 	if (Object.keys(updates).length === 0) return jsonResponse(existing);
 
-	const sets = Object.keys(updates)
-		.map((k) => `${k} = ?`)
-		.join(", ");
-	const values = [...Object.values(updates), params.id!];
+	const allowedCols = ["name", "position"] as const;
+	const setClauses: string[] = [];
+	const values: unknown[] = [];
+	for (const col of allowedCols) {
+		if (col in updates) {
+			setClauses.push(`${col} = ?`);
+			values.push(updates[col]);
+		}
+	}
+	values.push(params.id!);
 
 	const updated = db
 		.query(
-			`UPDATE columns SET ${sets}, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ? RETURNING *`,
+			`UPDATE columns SET ${setClauses.join(", ")}, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ? RETURNING *`,
 		)
 		.get(...(values as [string])) as Column;
 	return jsonResponse(updated);
@@ -74,10 +119,8 @@ export function deleteColumn(
 	params: Record<string, string>,
 ): Response {
 	const db = getDb();
-	const existing = db
-		.query("SELECT * FROM columns WHERE id = ?")
-		.get(params.id!) as Column | null;
-	if (!existing) throw new NotFoundError("Column", params.id);
+	const userId = getUserId(params);
+	requireColumnOwnership(params.id!, userId);
 	db.run("DELETE FROM columns WHERE id = ?", [params.id!]);
 	return jsonResponse({ deleted: true });
 }
@@ -87,8 +130,8 @@ export async function reorderColumns(
 	params: Record<string, string>,
 ): Promise<Response> {
 	const db = getDb();
-	const board = db.query("SELECT id FROM boards WHERE id = ?").get(params.id!);
-	if (!board) throw new NotFoundError("Board", params.id);
+	const userId = getUserId(params);
+	requireBoardOwnership(params.id!, userId);
 
 	const body = await parseJsonBody(req);
 	const columnIds = validateIntArray(body.column_ids, "column_ids");
@@ -107,6 +150,21 @@ export async function reorderColumns(
 		if (!existingIds.has(id)) {
 			throw new ValidationError(
 				`Column ${id} does not belong to board ${params.id}`,
+			);
+		}
+	}
+
+	// Verify all board columns are included
+	if (columnIds.length !== existing.length) {
+		throw new ValidationError(
+			"column_ids must include all columns in the board",
+		);
+	}
+	const providedIds = new Set(columnIds);
+	for (const { id } of existing) {
+		if (!providedIds.has(id)) {
+			throw new ValidationError(
+				`column_ids is missing column ${id} from the board`,
 			);
 		}
 	}

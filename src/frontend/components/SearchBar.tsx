@@ -43,11 +43,19 @@ export function SearchBar({ projectId, onClose }: SearchBarProps) {
 		};
 	}, [query, projectId]);
 
+	const handleResultClick = (_result: SearchResult) => {
+		// Close the search — navigation is handled by the parent if onNavigateToBoard is set
+		onClose();
+	};
+
 	return (
 		<div
 			className="fixed inset-0 flex items-start justify-center pt-[18vh] z-50 overlay-enter"
 			style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(8px)" }}
 			onClick={onClose}
+			role="dialog"
+			aria-modal="true"
+			aria-label="Search cards"
 		>
 			<div
 				className="rounded-2xl border w-full max-w-xl mx-4 shadow-2xl overflow-hidden animate-scale-in"
@@ -73,7 +81,11 @@ export function SearchBar({ projectId, onClose }: SearchBarProps) {
 							d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
 						/>
 					</svg>
+					<label htmlFor="search-input" className="sr-only">
+						Search cards
+					</label>
 					<input
+						id="search-input"
 						ref={inputRef}
 						type="text"
 						value={query}
@@ -105,12 +117,18 @@ export function SearchBar({ projectId, onClose }: SearchBarProps) {
 				{/* Results */}
 				{results.length > 0 && (
 					<div className="max-h-80 overflow-y-auto p-2">
-						{results.map((result, i) => (
+						{results.map((result) => (
 							<div
 								key={result.card.id}
-								className="px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150 card-enter"
-								style={{
-									animationDelay: `${i * 30}ms`,
+								className="px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150"
+								role="button"
+								tabIndex={0}
+								onClick={() => handleResultClick(result)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" || e.key === " ") {
+										e.preventDefault();
+										handleResultClick(result);
+									}
 								}}
 								onMouseEnter={(e) => {
 									e.currentTarget.style.background = "var(--surface-2)";

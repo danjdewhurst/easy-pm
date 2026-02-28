@@ -1,4 +1,8 @@
-import { SESSION_EXPIRY_DAYS } from "../../shared/constants.ts";
+import {
+	RATE_LIMIT_MAX_ATTEMPTS,
+	RATE_LIMIT_WINDOW_MS,
+	SESSION_EXPIRY_DAYS,
+} from "../../shared/constants.ts";
 import { getDb } from "../../shared/db.ts";
 import { AuthError, ValidationError } from "../../shared/errors.ts";
 import type {
@@ -42,7 +46,35 @@ function toPublicUser(user: User): PublicUser {
 	return { id: user.id, email: user.email, created_at: user.created_at };
 }
 
+/** Clean up expired sessions opportunistically */
+function cleanupExpiredSessions(): void {
+	const db = getDb();
+	db.run("DELETE FROM sessions WHERE expires_at <= datetime('now')");
+}
+
+// In-memory rate limiter keyed by IP
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(req: Request): void {
+	const ip =
+		req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+	const now = Date.now();
+	const entry = rateLimitMap.get(ip);
+
+	if (!entry || now > entry.resetAt) {
+		rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+		return;
+	}
+
+	entry.count++;
+	if (entry.count > RATE_LIMIT_MAX_ATTEMPTS) {
+		throw new ValidationError("Too many requests. Please try again later.");
+	}
+}
+
 export async function register(req: Request): Promise<Response> {
+	checkRateLimit(req);
+
 	const body = await parseJsonBody(req);
 	const email = validateEmail(body.email);
 	const password = validatePassword(body.password);
@@ -70,6 +102,8 @@ export async function register(req: Request): Promise<Response> {
 }
 
 export async function login(req: Request): Promise<Response> {
+	checkRateLimit(req);
+
 	const body = await parseJsonBody(req);
 	const email = validateEmail(body.email);
 	const password = validatePassword(body.password);
@@ -82,6 +116,9 @@ export async function login(req: Request): Promise<Response> {
 	if (!user || !(await Bun.password.verify(password, user.password_hash))) {
 		throw new AuthError("Invalid email or password");
 	}
+
+	// Opportunistically clean up expired sessions
+	cleanupExpiredSessions();
 
 	const session = createSession(user.id);
 	const data: AuthResponse = { token: session.token, user: toPublicUser(user) };

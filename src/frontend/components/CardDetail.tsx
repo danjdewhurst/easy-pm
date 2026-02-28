@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CardWithLabels, Label } from "../../shared/types.ts";
 import {
 	formatTimeEstimate,
@@ -29,6 +29,7 @@ export function CardDetail({
 		new Set(card.labels.map((l) => l.id)),
 	);
 	const [saving, setSaving] = useState(false);
+	const [error, setError] = useState("");
 	const titleRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
@@ -45,7 +46,7 @@ export function CardDetail({
 		return () => window.removeEventListener("keydown", handler);
 	}, [onClose]);
 
-	const isEstimateValid = (() => {
+	const isEstimateValid = useMemo(() => {
 		if (!timeEstimate.trim()) return true;
 		try {
 			parseTimeEstimate(timeEstimate);
@@ -53,20 +54,23 @@ export function CardDetail({
 		} catch {
 			return false;
 		}
-	})();
+	}, [timeEstimate]);
 
 	const handleSave = async () => {
 		setSaving(true);
+		setError("");
 		try {
 			await api.updateCard(card.id, {
 				title,
 				description: description || null,
 				due_date: dueDate ? new Date(dueDate).toISOString() : null,
-				time_estimate: timeEstimate ? timeEstimate : null,
+				time_estimate: timeEstimate ? parseTimeEstimate(timeEstimate) : null,
 			});
 			await api.setCardLabels(card.id, Array.from(selectedLabelIds));
 			onUpdate();
 			onClose();
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Failed to save");
 		} finally {
 			setSaving(false);
 		}
@@ -74,9 +78,13 @@ export function CardDetail({
 
 	const handleDelete = async () => {
 		if (confirm(`Delete card "${card.title}"?`)) {
-			await api.deleteCard(card.id);
-			onUpdate();
-			onClose();
+			try {
+				await api.deleteCard(card.id);
+				onUpdate();
+				onClose();
+			} catch (err) {
+				setError(err instanceof Error ? err.message : "Failed to delete");
+			}
 		}
 	};
 
@@ -103,6 +111,9 @@ export function CardDetail({
 			className="fixed inset-0 flex items-center justify-center z-50 overlay-enter"
 			style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
 			onClick={onClose}
+			role="dialog"
+			aria-modal="true"
+			aria-label={`Edit card: ${card.title}`}
 		>
 			<div
 				className="rounded-2xl border w-full max-w-lg mx-4 shadow-2xl animate-slide-up overflow-hidden"
@@ -113,6 +124,15 @@ export function CardDetail({
 				<div className="h-1" style={{ background: "var(--accent)" }} />
 
 				<div className="p-6 space-y-5">
+					{error && (
+						<div
+							className="text-sm px-3 py-2 rounded-lg"
+							style={{ background: "#ef444420", color: "#ef4444" }}
+						>
+							{error}
+						</div>
+					)}
+
 					{/* Title */}
 					<input
 						ref={titleRef}
@@ -206,6 +226,7 @@ export function CardDetail({
 										<button
 											key={label.id}
 											onClick={() => toggleLabel(label.id)}
+											aria-pressed={selected}
 											className="text-xs font-semibold px-3 py-1.5 rounded-lg border-2 transition-all duration-150 btn-press"
 											style={{
 												backgroundColor: selected

@@ -2,6 +2,7 @@ import {
 	MAX_DESCRIPTION_LENGTH,
 	MAX_EMAIL_LENGTH,
 	MAX_NAME_LENGTH,
+	MAX_PASSWORD_LENGTH,
 	MAX_TITLE_LENGTH,
 	MIN_PASSWORD_LENGTH,
 	VALID_COLOUR_PATTERN,
@@ -193,6 +194,11 @@ export function validatePassword(value: unknown): string {
 	if (value.length < MIN_PASSWORD_LENGTH) {
 		throw new ValidationError(
 			`password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+		);
+	}
+	if (value.length > MAX_PASSWORD_LENGTH) {
+		throw new ValidationError(
+			`password must be at most ${MAX_PASSWORD_LENGTH} characters`,
 		);
 	}
 	return value;

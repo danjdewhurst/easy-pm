@@ -13,9 +13,15 @@ interface BoardProps {
 	board: BoardView;
 	labels: Label[];
 	onUpdate: () => void;
+	onError: (message: string) => void;
 }
 
-export function BoardComponent({ board, labels, onUpdate }: BoardProps) {
+export function BoardComponent({
+	board,
+	labels,
+	onUpdate,
+	onError,
+}: BoardProps) {
 	const [newColumnName, setNewColumnName] = useState("");
 	const [showNewColumn, setShowNewColumn] = useState(false);
 	const [dragState, setDragState] = useState<DragState | null>(null);
@@ -28,10 +34,14 @@ export function BoardComponent({ board, labels, onUpdate }: BoardProps) {
 	const handleCreateColumn = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (newColumnName.trim()) {
-			await api.createColumn(board.id, newColumnName.trim());
-			setNewColumnName("");
-			setShowNewColumn(false);
-			onUpdate();
+			try {
+				await api.createColumn(board.id, newColumnName.trim());
+				setNewColumnName("");
+				setShowNewColumn(false);
+				onUpdate();
+			} catch (err) {
+				onError(err instanceof Error ? err.message : "Failed to create column");
+			}
 		}
 	};
 
@@ -59,10 +69,14 @@ export function BoardComponent({ board, labels, onUpdate }: BoardProps) {
 				}
 			}
 
-			await api.moveCard(cardId, targetColumnId, position);
-			onUpdate();
+			try {
+				await api.moveCard(cardId, targetColumnId, position);
+				onUpdate();
+			} catch (err) {
+				onError(err instanceof Error ? err.message : "Failed to move card");
+			}
 		},
-		[dragState, board.columns, onUpdate],
+		[dragState, board.columns, onUpdate, onError],
 	);
 
 	return (
@@ -74,6 +88,7 @@ export function BoardComponent({ board, labels, onUpdate }: BoardProps) {
 						column={column}
 						labels={labels}
 						onUpdate={onUpdate}
+						onError={onError}
 						index={i}
 						dragState={dragState}
 						onDragStart={handleDragStart}

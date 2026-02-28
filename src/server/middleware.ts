@@ -40,11 +40,12 @@ export function withAuth(handler: RouteHandler): RouteHandler {
 		const db = getDb();
 		const session = db
 			.query(
-				"SELECT id FROM sessions WHERE token = ? AND expires_at > datetime('now')",
+				"SELECT user_id FROM sessions WHERE token = ? AND expires_at > datetime('now')",
 			)
-			.get(token);
+			.get(token) as { user_id: number } | null;
 
 		if (!session) throw new AuthError();
+		params._userId = String(session.user_id);
 		return handler(req, params);
 	};
 }

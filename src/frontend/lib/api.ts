@@ -9,6 +9,7 @@ import type {
 	Project,
 	PublicUser,
 	SearchResult,
+	UpdateCard,
 } from "../../shared/types.ts";
 
 const TOKEN_KEY = "easy_pm_token";
@@ -30,9 +31,11 @@ async function request<T>(
 	path: string,
 	body?: unknown,
 ): Promise<T> {
-	const headers: Record<string, string> = {
-		"Content-Type": "application/json",
-	};
+	const headers: Record<string, string> = {};
+
+	if (body !== undefined) {
+		headers["Content-Type"] = "application/json";
+	}
 
 	const token = getToken();
 	if (token) {
@@ -42,7 +45,7 @@ async function request<T>(
 	const res = await fetch(path, {
 		method,
 		headers,
-		body: body ? JSON.stringify(body) : undefined,
+		body: body !== undefined ? JSON.stringify(body) : undefined,
 	});
 
 	if (res.status === 401) {
@@ -105,7 +108,7 @@ export const createCard = (
 		title,
 		description,
 	});
-export const updateCard = (id: number, data: Record<string, unknown>) =>
+export const updateCard = (id: number, data: UpdateCard) =>
 	request<CardWithLabels>("PUT", `/api/cards/${id}`, data);
 export const deleteCard = (id: number) =>
 	request<void>("DELETE", `/api/cards/${id}`);

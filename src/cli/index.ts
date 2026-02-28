@@ -60,7 +60,7 @@ try {
 			help: { type: "boolean", short: "h" },
 		},
 		allowPositionals: true,
-		strict: false,
+		strict: true,
 	});
 
 	if (values.help || positionals.length === 0) {

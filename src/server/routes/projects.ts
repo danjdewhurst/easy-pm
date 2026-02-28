@@ -1,5 +1,5 @@
 import { getDb } from "../../shared/db.ts";
-import { NotFoundError } from "../../shared/errors.ts";
+import { ForbiddenError, NotFoundError } from "../../shared/errors.ts";
 import type { Project } from "../../shared/types.ts";
 import {
 	parseJsonBody,
@@ -8,23 +8,37 @@ import {
 } from "../../shared/validate.ts";
 import { jsonResponse } from "../middleware.ts";
 
-export function listProjects(): Response {
+function getUserId(params: Record<string, string>): number {
+	return Number(params._userId);
+}
+
+export function listProjects(
+	_req: Request,
+	params: Record<string, string>,
+): Response {
 	const db = getDb();
+	const userId = getUserId(params);
 	const projects = db
-		.query("SELECT * FROM projects ORDER BY id")
-		.all() as Project[];
+		.query("SELECT * FROM projects WHERE user_id = ? ORDER BY id")
+		.all(userId) as Project[];
 	return jsonResponse(projects);
 }
 
-export async function createProject(req: Request): Promise<Response> {
+export async function createProject(
+	req: Request,
+	params: Record<string, string>,
+): Promise<Response> {
 	const body = await parseJsonBody(req);
 	const name = validateName(body.name);
 	const description = validateDescription(body.description) ?? null;
+	const userId = getUserId(params);
 
 	const db = getDb();
 	const result = db
-		.query("INSERT INTO projects (name, description) VALUES (?, ?) RETURNING *")
-		.get(name, description) as Project;
+		.query(
+			"INSERT INTO projects (user_id, name, description) VALUES (?, ?, ?) RETURNING *",
+		)
+		.get(userId, name, description) as Project;
 	return jsonResponse(result, 201);
 }
 
@@ -33,9 +47,10 @@ export function getProject(
 	params: Record<string, string>,
 ): Response {
 	const db = getDb();
+	const userId = getUserId(params);
 	const project = db
-		.query("SELECT * FROM projects WHERE id = ?")
-		.get(params.id!) as Project | null;
+		.query("SELECT * FROM projects WHERE id = ? AND user_id = ?")
+		.get(params.id!, userId) as Project | null;
 	if (!project) throw new NotFoundError("Project", params.id);
 	return jsonResponse(project);
 }
@@ -45,10 +60,12 @@ export async function updateProject(
 	params: Record<string, string>,
 ): Promise<Response> {
 	const db = getDb();
+	const userId = getUserId(params);
 	const existing = db
 		.query("SELECT * FROM projects WHERE id = ?")
 		.get(params.id!) as Project | null;
 	if (!existing) throw new NotFoundError("Project", params.id);
+	if (existing.user_id !== userId) throw new ForbiddenError();
 
 	const body = await parseJsonBody(req);
 	const updates: Record<string, string | null> = {};
@@ -58,14 +75,20 @@ export async function updateProject(
 
 	if (Object.keys(updates).length === 0) return jsonResponse(existing);
 
-	const sets = Object.keys(updates)
-		.map((k) => `${k} = ?`)
-		.join(", ");
-	const values = [...Object.values(updates), params.id!];
+	const allowedCols = ["name", "description"] as const;
+	const setClauses: string[] = [];
+	const values: (string | null)[] = [];
+	for (const col of allowedCols) {
+		if (col in updates) {
+			setClauses.push(`${col} = ?`);
+			values.push(updates[col]!);
+		}
+	}
+	values.push(params.id!);
 
 	const updated = db
 		.query(
-			`UPDATE projects SET ${sets}, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ? RETURNING *`,
+			`UPDATE projects SET ${setClauses.join(", ")}, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ? RETURNING *`,
 		)
 		.get(...(values as [string])) as Project;
 	return jsonResponse(updated);
@@ -76,10 +99,12 @@ export function deleteProject(
 	params: Record<string, string>,
 ): Response {
 	const db = getDb();
+	const userId = getUserId(params);
 	const existing = db
 		.query("SELECT * FROM projects WHERE id = ?")
 		.get(params.id!) as Project | null;
 	if (!existing) throw new NotFoundError("Project", params.id);
+	if (existing.user_id !== userId) throw new ForbiddenError();
 	db.run("DELETE FROM projects WHERE id = ?", [params.id!]);
 	return jsonResponse({ deleted: true });
 }

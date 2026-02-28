@@ -1,6 +1,6 @@
 import { POSITION_GAP } from "../../shared/constants.ts";
 import { getDb } from "../../shared/db.ts";
-import { NotFoundError } from "../../shared/errors.ts";
+import { ForbiddenError, NotFoundError } from "../../shared/errors.ts";
 import type { Card, CardWithLabels, Label } from "../../shared/types.ts";
 import {
 	parseJsonBody,
@@ -12,6 +12,45 @@ import {
 	validateTitle,
 } from "../../shared/validate.ts";
 import { jsonResponse } from "../middleware.ts";
+
+function getUserId(params: Record<string, string>): number {
+	return Number(params._userId);
+}
+
+function verifyColumnOwnership(
+	columnId: string | number,
+	userId: number,
+): void {
+	const db = getDb();
+	const row = db
+		.query(
+			`SELECT p.user_id FROM columns col
+       JOIN boards b ON col.board_id = b.id
+       JOIN projects p ON b.project_id = p.id
+       WHERE col.id = ?`,
+		)
+		.get(columnId) as { user_id: number } | null;
+	if (!row) throw new NotFoundError("Column", columnId);
+	if (row.user_id !== userId) throw new ForbiddenError();
+}
+
+function verifyCardOwnership(cardId: string | number, userId: number): Card {
+	const db = getDb();
+	const card = db
+		.query("SELECT * FROM cards WHERE id = ?")
+		.get(cardId) as Card | null;
+	if (!card) throw new NotFoundError("Card", cardId);
+	const row = db
+		.query(
+			`SELECT p.user_id FROM columns col
+       JOIN boards b ON col.board_id = b.id
+       JOIN projects p ON b.project_id = p.id
+       WHERE col.id = ?`,
+		)
+		.get(card.column_id) as { user_id: number } | null;
+	if (!row || row.user_id !== userId) throw new ForbiddenError();
+	return card;
+}
 
 function getCardWithLabels(cardId: number): CardWithLabels {
 	const db = getDb();
@@ -35,26 +74,39 @@ export function listCards(
 	params: Record<string, string>,
 ): Response {
 	const db = getDb();
-	const column = db
-		.query("SELECT id FROM columns WHERE id = ?")
-		.get(params.id!);
-	if (!column) throw new NotFoundError("Column", params.id);
+	const userId = getUserId(params);
+	verifyColumnOwnership(params.id!, userId);
 
 	const cards = db
 		.query("SELECT * FROM cards WHERE column_id = ? ORDER BY position, id")
 		.all(params.id!) as Card[];
 
-	const cardsWithLabels: CardWithLabels[] = cards.map((card) => {
-		const labels = db
+	// Batch label fetch to avoid N+1
+	const cardIds = cards.map((c) => c.id);
+	let allLabels: (Label & { card_id: number })[] = [];
+	if (cardIds.length > 0) {
+		const placeholders = cardIds.map(() => "?").join(",");
+		allLabels = db
 			.query(
-				`SELECT l.* FROM labels l
+				`SELECT l.*, cl.card_id FROM labels l
          JOIN card_labels cl ON cl.label_id = l.id
-         WHERE cl.card_id = ?
+         WHERE cl.card_id IN (${placeholders})
          ORDER BY l.name`,
 			)
-			.all(card.id) as Label[];
-		return { ...card, labels };
-	});
+			.all(...cardIds) as (Label & { card_id: number })[];
+	}
+
+	const labelsByCard = new Map<number, Label[]>();
+	for (const row of allLabels) {
+		const { card_id, ...label } = row;
+		if (!labelsByCard.has(card_id)) labelsByCard.set(card_id, []);
+		labelsByCard.get(card_id)!.push(label as Label);
+	}
+
+	const cardsWithLabels: CardWithLabels[] = cards.map((card) => ({
+		...card,
+		labels: labelsByCard.get(card.id) ?? [],
+	}));
 
 	return jsonResponse(cardsWithLabels);
 }
@@ -64,10 +116,8 @@ export async function createCard(
 	params: Record<string, string>,
 ): Promise<Response> {
 	const db = getDb();
-	const column = db
-		.query("SELECT id FROM columns WHERE id = ?")
-		.get(params.id!);
-	if (!column) throw new NotFoundError("Column", params.id);
+	const userId = getUserId(params);
+	verifyColumnOwnership(params.id!, userId);
 
 	const body = await parseJsonBody(req);
 	const title = validateTitle(body.title);
@@ -103,6 +153,8 @@ export function getCard(
 	_req: Request,
 	params: Record<string, string>,
 ): Response {
+	const userId = getUserId(params);
+	verifyCardOwnership(params.id!, userId);
 	return jsonResponse(getCardWithLabels(Number(params.id)));
 }
 
@@ -111,10 +163,8 @@ export async function updateCard(
 	params: Record<string, string>,
 ): Promise<Response> {
 	const db = getDb();
-	const existing = db
-		.query("SELECT * FROM cards WHERE id = ?")
-		.get(params.id!) as Card | null;
-	if (!existing) throw new NotFoundError("Card", params.id);
+	const userId = getUserId(params);
+	verifyCardOwnership(params.id!, userId);
 
 	const body = await parseJsonBody(req);
 	const updates: Record<string, unknown> = {};
@@ -131,12 +181,25 @@ export async function updateCard(
 	if (Object.keys(updates).length === 0)
 		return jsonResponse(getCardWithLabels(Number(params.id)));
 
-	const sets = Object.keys(updates)
-		.map((k) => `${k} = ?`)
-		.join(", ");
-	const allValues = [...Object.values(updates), params.id!];
+	const allowedCols = [
+		"title",
+		"description",
+		"position",
+		"due_date",
+		"time_estimate",
+	] as const;
+	const setClauses: string[] = [];
+	const allValues: unknown[] = [];
+	for (const col of allowedCols) {
+		if (col in updates) {
+			setClauses.push(`${col} = ?`);
+			allValues.push(updates[col]);
+		}
+	}
+	allValues.push(params.id!);
+
 	db.query(
-		`UPDATE cards SET ${sets}, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ?`,
+		`UPDATE cards SET ${setClauses.join(", ")}, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ?`,
 	).run(...(allValues as [string]));
 
 	return jsonResponse(getCardWithLabels(Number(params.id)));
@@ -147,10 +210,8 @@ export function deleteCard(
 	params: Record<string, string>,
 ): Response {
 	const db = getDb();
-	const existing = db
-		.query("SELECT * FROM cards WHERE id = ?")
-		.get(params.id!) as Card | null;
-	if (!existing) throw new NotFoundError("Card", params.id);
+	const userId = getUserId(params);
+	verifyCardOwnership(params.id!, userId);
 	db.run("DELETE FROM cards WHERE id = ?", [params.id!]);
 	return jsonResponse({ deleted: true });
 }
@@ -160,17 +221,15 @@ export async function moveCard(
 	params: Record<string, string>,
 ): Promise<Response> {
 	const db = getDb();
-	const existing = db
-		.query("SELECT * FROM cards WHERE id = ?")
-		.get(params.id!) as Card | null;
-	if (!existing) throw new NotFoundError("Card", params.id);
+	const userId = getUserId(params);
+	verifyCardOwnership(params.id!, userId);
 
 	const body = await parseJsonBody(req);
 	const columnId = validatePositiveInt(body.column_id, "column_id");
 	if (columnId === undefined) throw new NotFoundError("Column");
 
-	const column = db.query("SELECT id FROM columns WHERE id = ?").get(columnId);
-	if (!column) throw new NotFoundError("Column", columnId);
+	// Verify target column is owned by the same user
+	verifyColumnOwnership(columnId, userId);
 
 	let position = validatePositiveInt(body.position, "position");
 	if (position === undefined) {
@@ -192,10 +251,8 @@ export async function setCardLabels(
 	params: Record<string, string>,
 ): Promise<Response> {
 	const db = getDb();
-	const existing = db
-		.query("SELECT * FROM cards WHERE id = ?")
-		.get(params.id!) as Card | null;
-	if (!existing) throw new NotFoundError("Card", params.id);
+	const userId = getUserId(params);
+	verifyCardOwnership(params.id!, userId);
 
 	const body = await parseJsonBody(req);
 	const labelIds = validateIntArray(body.label_ids, "label_ids");

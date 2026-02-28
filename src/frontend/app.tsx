@@ -41,6 +41,10 @@ function getInitialTheme(): Theme {
 		: "light";
 }
 
+const isMac =
+	typeof navigator !== "undefined" &&
+	/Mac|iPhone|iPad/.test(navigator.userAgent);
+
 interface AppProps {
 	user: PublicUser;
 	onLogout: () => void;
@@ -54,6 +58,8 @@ function App({ user, onLogout }: AppProps) {
 	const [labels, setLabels] = useState<Label[]>([]);
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [theme, setTheme] = useState<Theme>(getInitialTheme);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState("");
 
 	useEffect(() => {
 		document.documentElement.classList.toggle("dark", theme === "dark");
@@ -64,26 +70,57 @@ function App({ user, onLogout }: AppProps) {
 		setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 	}, []);
 
+	const showError = useCallback((message: string) => {
+		setError(message);
+		setTimeout(() => setError(""), 5000);
+	}, []);
+
 	const loadProjects = useCallback(async () => {
-		const data = await api.listProjects();
-		setProjects(data);
-		return data;
-	}, []);
+		try {
+			const data = await api.listProjects();
+			setProjects(data);
+			return data;
+		} catch (err) {
+			showError(err instanceof Error ? err.message : "Failed to load projects");
+			return [];
+		}
+	}, [showError]);
 
-	const loadBoards = useCallback(async (projectId: number) => {
-		const data = await api.listBoards(projectId);
-		setBoards(data);
-	}, []);
+	const loadBoards = useCallback(
+		async (projectId: number) => {
+			try {
+				const data = await api.listBoards(projectId);
+				setBoards(data);
+			} catch (err) {
+				showError(err instanceof Error ? err.message : "Failed to load boards");
+			}
+		},
+		[showError],
+	);
 
-	const loadBoard = useCallback(async (boardId: number) => {
-		const data = await api.getBoard(boardId);
-		setBoardView(data);
-	}, []);
+	const loadBoard = useCallback(
+		async (boardId: number) => {
+			try {
+				const data = await api.getBoard(boardId);
+				setBoardView(data);
+			} catch (err) {
+				showError(err instanceof Error ? err.message : "Failed to load board");
+			}
+		},
+		[showError],
+	);
 
-	const loadLabels = useCallback(async (projectId: number) => {
-		const data = await api.listLabels(projectId);
-		setLabels(data);
-	}, []);
+	const loadLabels = useCallback(
+		async (projectId: number) => {
+			try {
+				const data = await api.listLabels(projectId);
+				setLabels(data);
+			} catch (err) {
+				showError(err instanceof Error ? err.message : "Failed to load labels");
+			}
+		},
+		[showError],
+	);
 
 	useEffect(() => {
 		(async () => {
@@ -96,6 +133,7 @@ function App({ user, onLogout }: AppProps) {
 					if (boardId) loadBoard(boardId);
 				}
 			}
+			setLoading(false);
 		})();
 	}, [loadBoard, loadProjects]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -143,14 +181,24 @@ function App({ user, onLogout }: AppProps) {
 	};
 
 	const handleCreateProject = async (name: string) => {
-		await api.createProject(name);
-		await loadProjects();
+		try {
+			await api.createProject(name);
+			await loadProjects();
+		} catch (err) {
+			showError(
+				err instanceof Error ? err.message : "Failed to create project",
+			);
+		}
 	};
 
 	const handleCreateBoard = async (name: string) => {
 		if (!selectedProject) return;
-		await api.createBoard(selectedProject.id, name);
-		await loadBoards(selectedProject.id);
+		try {
+			await api.createBoard(selectedProject.id, name);
+			await loadBoards(selectedProject.id);
+		} catch (err) {
+			showError(err instanceof Error ? err.message : "Failed to create board");
+		}
 	};
 
 	const handleBoardUpdate = () => {
@@ -191,6 +239,16 @@ function App({ user, onLogout }: AppProps) {
 				className="flex-1 flex flex-col overflow-hidden"
 				style={{ background: "var(--surface-0)" }}
 			>
+				{/* Error toast */}
+				{error && (
+					<div
+						className="px-4 py-2.5 text-sm text-center animate-slide-down"
+						style={{ background: "#ef444420", color: "#ef4444" }}
+					>
+						{error}
+					</div>
+				)}
+
 				{/* Header */}
 				<header
 					className="flex items-center justify-between px-8 h-[57px] border-b"
@@ -212,7 +270,7 @@ function App({ user, onLogout }: AppProps) {
 								color: boardView ? "var(--text-primary)" : "var(--text-muted)",
 							}}
 						>
-							{boardView?.name ?? "Select a board"}
+							{boardView?.name ?? (loading ? "Loading…" : "Select a board")}
 						</h1>
 						{boardView && (
 							<span
@@ -260,7 +318,7 @@ function App({ user, onLogout }: AppProps) {
 								color: "var(--text-muted)",
 							}}
 						>
-							&#8984;K
+							{isMac ? "\u2318K" : "Ctrl+K"}
 						</kbd>
 					</button>
 				</header>
@@ -271,6 +329,7 @@ function App({ user, onLogout }: AppProps) {
 						board={boardView}
 						labels={labels}
 						onUpdate={handleBoardUpdate}
+						onError={showError}
 					/>
 				) : (
 					<div className="flex-1 flex items-center justify-center">

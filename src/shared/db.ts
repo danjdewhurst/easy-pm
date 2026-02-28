@@ -22,5 +22,8 @@ export function closeDb(): void {
 
 /** Reset the singleton — used by tests to swap in a fresh :memory: db */
 export function resetDb(): void {
-	db = null;
+	if (db) {
+		db.close();
+		db = null;
+	}
 }

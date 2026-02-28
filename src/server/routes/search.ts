@@ -3,14 +3,32 @@ import { ValidationError } from "../../shared/errors.ts";
 import type { Card, Label, SearchResult } from "../../shared/types.ts";
 import { jsonResponse } from "../middleware.ts";
 
-export function searchCards(req: Request): Response {
+function getUserId(params: Record<string, string>): number {
+	return Number(params._userId);
+}
+
+/** Escape FTS5 special characters by wrapping each term in double quotes */
+function sanitiseFtsQuery(raw: string): string {
+	return raw
+		.trim()
+		.split(/\s+/)
+		.map((term) => `"${term.replace(/"/g, '""')}"`)
+		.join(" ");
+}
+
+export function searchCards(
+	req: Request,
+	params: Record<string, string>,
+): Response {
 	const url = new URL(req.url);
 	const q = url.searchParams.get("q");
 	if (!q || q.trim().length === 0) {
 		throw new ValidationError("Search query 'q' is required");
 	}
 
+	const userId = getUserId(params);
 	const projectId = url.searchParams.get("projectId");
+	const safeQuery = sanitiseFtsQuery(q);
 
 	const db = getDb();
 
@@ -22,12 +40,13 @@ export function searchCards(req: Request): Response {
     JOIN boards b ON col.board_id = b.id
     JOIN projects p ON b.project_id = p.id
     WHERE cards_fts MATCH ?
+    AND p.user_id = ?
   `;
-	const params: (string | number)[] = [q.trim()];
+	const sqlParams: (string | number)[] = [safeQuery, userId];
 
 	if (projectId) {
 		sql += " AND p.id = ?";
-		params.push(projectId);
+		sqlParams.push(projectId);
 	}
 
 	sql += " ORDER BY rank LIMIT 50";
@@ -37,7 +56,7 @@ export function searchCards(req: Request): Response {
 		board_name: string;
 		project_name: string;
 	};
-	const rows = db.query(sql).all(...params) as SearchRow[];
+	const rows = db.query(sql).all(...sqlParams) as SearchRow[];
 
 	const results: SearchResult[] = rows.map((row) => {
 		const labels = db

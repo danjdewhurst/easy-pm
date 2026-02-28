@@ -8,6 +8,7 @@ import {
 	parseTimeEstimate,
 	requirePositiveInt,
 	requireString,
+	validateColour,
 	validateDescription,
 	validateEmail,
 	validateIntArray,
@@ -302,6 +303,52 @@ describe("validatePassword", () => {
 
 	test("throws on short password", () => {
 		expect(() => validatePassword("short")).toThrow(ValidationError);
+	});
+});
+
+// ─── validateColour ──────────────────────────────────────────────
+
+describe("validateColour", () => {
+	test("returns valid hex colour", () => {
+		expect(validateColour("#ff0000")).toBe("#ff0000");
+		expect(validateColour("#00FF00")).toBe("#00FF00");
+		expect(validateColour("#abcdef")).toBe("#abcdef");
+	});
+
+	test("throws on missing hash", () => {
+		expect(() => validateColour("ff0000")).toThrow(ValidationError);
+	});
+
+	test("throws on short hex", () => {
+		expect(() => validateColour("#fff")).toThrow(ValidationError);
+	});
+
+	test("throws on invalid characters", () => {
+		expect(() => validateColour("#gggggg")).toThrow(ValidationError);
+	});
+
+	test("throws on empty string", () => {
+		expect(() => validateColour("")).toThrow(ValidationError);
+	});
+
+	test("throws on non-string", () => {
+		expect(() => validateColour(123)).toThrow(ValidationError);
+	});
+
+	test("throws on too-long hex", () => {
+		expect(() => validateColour("#ff00000")).toThrow(ValidationError);
+	});
+});
+
+// ─── validatePassword (max length) ──────────────────────────────
+
+describe("validatePassword max length", () => {
+	test("throws on password exceeding max length", () => {
+		expect(() => validatePassword("a".repeat(257))).toThrow(ValidationError);
+	});
+
+	test("accepts password at max length boundary", () => {
+		expect(validatePassword("a".repeat(256))).toBe("a".repeat(256));
 	});
 });
 

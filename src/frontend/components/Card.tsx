@@ -7,7 +7,6 @@ interface CardProps {
 	card: CardWithLabels;
 	labels: Label[];
 	onUpdate: () => void;
-	index: number;
 	columnId: number;
 	isDragging: boolean;
 	onDragStart: (cardId: number, columnId: number) => void;
@@ -18,7 +17,6 @@ export function CardComponent({
 	card,
 	labels,
 	onUpdate,
-	index,
 	columnId,
 	isDragging,
 	onDragStart,
@@ -44,11 +42,18 @@ export function CardComponent({
 				onClick={() => {
 					if (!isDragging) setShowDetail(true);
 				}}
-				className={`rounded-lg p-3 border cursor-grab transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md group card-enter active:cursor-grabbing ${isDragging ? "card-dragging" : ""}`}
+				onKeyDown={(e) => {
+					if (!isDragging && (e.key === "Enter" || e.key === " ")) {
+						e.preventDefault();
+						setShowDetail(true);
+					}
+				}}
+				role="button"
+				tabIndex={0}
+				className={`rounded-lg p-3 border cursor-grab transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md group/card active:cursor-grabbing ${isDragging ? "card-dragging" : ""}`}
 				style={{
 					background: "var(--surface-0)",
 					borderColor: "var(--border-subtle)",
-					animationDelay: `${index * 30}ms`,
 				}}
 			>
 				{/* Labels */}
