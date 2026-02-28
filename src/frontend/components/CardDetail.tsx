@@ -110,8 +110,15 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
                 value={timeEstimate}
                 onChange={(e) => setTimeEstimate(e.target.value)}
                 placeholder="e.g. 1h 30m"
-                className="w-full px-3 py-1.5 text-sm bg-slate-900/50 border border-slate-700 rounded-lg text-slate-300 focus:outline-none focus:border-indigo-500"
+                className={`w-full px-3 py-1.5 text-sm bg-slate-900/50 border rounded-lg text-slate-300 focus:outline-none ${
+                  isEstimateValid
+                    ? "border-slate-700 focus:border-indigo-500"
+                    : "border-red-500/60 focus:border-red-500"
+                }`}
               />
+              {!isEstimateValid && (
+                <p className="text-[11px] text-red-400 mt-1">Use format like 30m, 1h, or 1h 30m</p>
+              )}
             </div>
           </div>
 
@@ -156,7 +163,7 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
             </button>
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || !isEstimateValid}
               className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 transition-colors"
             >
               {saving ? "Saving..." : "Save"}
