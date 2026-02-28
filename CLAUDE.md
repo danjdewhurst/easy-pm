@@ -1,123 +1,64 @@
----
-description: Use Bun instead of Node.js, npm, pnpm, or vite.
-globs: "*.ts, *.tsx, *.html, *.css, *.js, *.jsx, package.json"
-alwaysApply: false
----
+# Easy-PM
 
-Default to using Bun instead of Node.js.
+Lightweight project management tool with Kanban boards. Three interfaces: React web frontend, REST API, and CLI.
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Use `bunx <package> <command>` instead of `npx <package> <command>`
-- Bun automatically loads .env, so don't use dotenv.
+## Stack
 
-## APIs
+- **Runtime:** Bun (TypeScript) — no Node.js, no Express
+- **Database:** SQLite via `bun:sqlite` (WAL mode, FTS5 for search)
+- **Frontend:** React 19 + Tailwind CSS v4 (Catppuccin Latte/Frappé colour system)
+- **Linting:** Biome (tabs, double quotes, recommended rules)
+- **Git hooks:** Lefthook (pre-commit: biome check + tsc --noEmit)
 
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
-- `WebSocket` is built-in. Don't use `ws`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
-
-## Testing
-
-Use `bun test` to run tests.
-
-```ts#index.test.ts
-import { test, expect } from "bun:test";
-
-test("hello world", () => {
-  expect(1).toBe(1);
-});
-```
-
-## Frontend
-
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
-
-### Tailwind CSS v4
-
-Tailwind requires `bun-plugin-tailwind` — Bun's CSS bundler does NOT run Tailwind's JIT compiler on its own.
-
-1. `bun add tailwindcss bun-plugin-tailwind`
-2. Add to `bunfig.toml`:
-   ```toml
-   [serve.static]
-   plugins = ["bun-plugin-tailwind"]
-   ```
-3. In HTML, add `<link rel="stylesheet" href="tailwindcss" />` (or `@import "tailwindcss"` in CSS)
-
-### Server with HTML imports
-
-```ts#index.ts
-import index from "./index.html"
-
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
-})
-```
-
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
-
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
-```
-
-With the following `frontend.tsx`:
-
-```tsx#frontend.tsx
-import React from "react";
-import { createRoot } from "react-dom/client";
-
-// import .css files directly and it works
-import './index.css';
-
-const root = createRoot(document.body);
-
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
-
-root.render(<Frontend />);
-```
-
-Then, run index.ts
+## Commands
 
 ```sh
-bun --hot ./index.ts
+bun install            # install dependencies
+bun run dev            # dev server with HMR (port 3000)
+bun run start          # production server
+bun run cli -- <args>  # CLI (e.g. bun run cli -- card list --board-id 1)
+bun test               # run all tests
+bun run typecheck      # type-check
+bun run lint           # lint with Biome
+bun run lint:fix       # auto-fix lint issues
+bun run format         # format with Biome
 ```
 
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+## Architecture
+
+```
+src/
+  shared/          # Types, validation, DB schema, errors, constants
+  server/          # Bun.serve() API + frontend serving
+    routes/        # auth, projects, boards, columns, cards, labels, search
+  cli/             # CLI entry point + commands (mirrors API resources)
+    commands/      # auth, projects, boards, columns, cards, labels, search
+  frontend/        # React SPA served via HTML imports
+    components/    # Board, Column, Card, CardDetail, Sidebar, SearchBar, etc.
+test/
+  server/          # API integration tests
+  cli/             # CLI integration tests
+  shared/          # Validation unit tests
+```
+
+## Data Model
+
+User → Projects → Boards → Columns → Cards ↔ Labels (join table). Labels are scoped to a project. Columns and cards use `position` (integer, gap of 1000) for drag-and-drop ordering. FTS5 virtual table indexes card title + description with triggers for sync.
+
+## Key Patterns
+
+- **Auth:** Bearer token sessions (30-day expiry), IP-based rate limiting on auth endpoints
+- **Ownership:** Multi-layer verification (user → project → board → column → card) on every mutation
+- **Errors:** Domain-specific hierarchy (`AppError`, `NotFoundError`, `ValidationError`, `ForbiddenError`) — throw in handlers, caught by middleware
+- **Validation:** Centralised in `src/shared/validate.ts` — all input validated before DB access
+- **API responses:** Envelope format `{ ok: boolean, data?: T, error?: string }`
+- **DB queries:** Direct parameterised SQLite, batch queries to avoid N+1
+- **Frontend routing:** History API with manual route matching in `App.tsx`
+- **Colour system:** CSS custom properties (`--surface-0` through `--surface-3`, `--text-primary`, `--accent`, etc.) with light/dark mode
+
+## Conventions
+
+- British English spelling (`colour`, `initialise`, `organised`)
+- Strict TypeScript — no `any`, explicit types
+- Conventional commits (`feat:`, `fix:`, `refactor:`, `test:`, `chore:`)
+- Tests use in-memory SQLite with `setupTestServer()`/`teardownTestServer()` helpers
