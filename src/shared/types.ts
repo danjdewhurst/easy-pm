@@ -28,6 +28,7 @@ export interface Column {
 export interface Card {
 	id: number;
 	column_id: number;
+	created_by: number;
 	title: string;
 	description: string | null;
 	position: number;

@@ -414,10 +414,13 @@ describe("Cards", () => {
 			}),
 		});
 		expect(createRes.status).toBe(201);
-		const createBody = await apiJson<{ title: string; labels: unknown[] }>(
-			createRes,
-		);
+		const createBody = await apiJson<{
+			title: string;
+			created_by: number;
+			labels: unknown[];
+		}>(createRes);
 		expect(createBody.data.title).toBe("Task 1");
+		expect(createBody.data.created_by).toBe(1);
 		expect(createBody.data.labels).toEqual([]);
 
 		// List cards

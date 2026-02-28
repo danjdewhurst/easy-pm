@@ -135,10 +135,11 @@ export async function createCard(
 
 	const result = db
 		.query(
-			"INSERT INTO cards (column_id, title, description, position, due_date, time_estimate) VALUES (?, ?, ?, ?, ?, ?) RETURNING *",
+			"INSERT INTO cards (column_id, created_by, title, description, position, due_date, time_estimate) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *",
 		)
 		.get(
 			params.id!,
+			userId,
 			title,
 			description,
 			position,

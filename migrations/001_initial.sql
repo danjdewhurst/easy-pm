@@ -1,4 +1,3 @@
-export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT NOT NULL UNIQUE,
@@ -46,7 +45,6 @@ CREATE TABLE IF NOT EXISTS columns (
 CREATE TABLE IF NOT EXISTS cards (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   column_id INTEGER NOT NULL REFERENCES columns(id) ON DELETE CASCADE,
-  created_by INTEGER NOT NULL REFERENCES users(id),
   title TEXT NOT NULL,
   description TEXT,
   position INTEGER NOT NULL DEFAULT 0,
@@ -90,4 +88,3 @@ CREATE TRIGGER IF NOT EXISTS cards_au AFTER UPDATE ON cards BEGIN
   INSERT INTO cards_fts(cards_fts, rowid, title, description) VALUES ('delete', old.id, old.title, old.description);
   INSERT INTO cards_fts(rowid, title, description) VALUES (new.id, new.title, new.description);
 END;
-`;
