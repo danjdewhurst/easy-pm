@@ -4,6 +4,8 @@ import {
   MAX_DESCRIPTION_LENGTH,
   MAX_TITLE_LENGTH,
   VALID_COLOUR_PATTERN,
+  MIN_PASSWORD_LENGTH,
+  MAX_EMAIL_LENGTH,
 } from "./constants.ts";
 
 export function requireString(value: unknown, field: string): string {
@@ -143,6 +145,28 @@ export function formatTimeEstimate(minutes: number | null | undefined): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+export function validateEmail(value: unknown): string {
+  const email = requireString(value, "email");
+  if (email.length > MAX_EMAIL_LENGTH) {
+    throw new ValidationError(`email must be at most ${MAX_EMAIL_LENGTH} characters`);
+  }
+  // Basic email format check
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new ValidationError("email must be a valid email address");
+  }
+  return email.toLowerCase();
+}
+
+export function validatePassword(value: unknown): string {
+  if (typeof value !== "string") {
+    throw new ValidationError("password is required and must be a string");
+  }
+  if (value.length < MIN_PASSWORD_LENGTH) {
+    throw new ValidationError(`password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+  }
+  return value;
 }
 
 export async function parseJsonBody(req: Request): Promise<Record<string, unknown>> {

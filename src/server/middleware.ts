@@ -1,7 +1,7 @@
 import { AppError, AuthError } from "../shared/errors.ts";
 import type { ApiResponse } from "../shared/types.ts";
-
-const API_KEY = process.env["EASY_PM_API_KEY"] ?? "dev-api-key";
+import { getDb } from "../shared/db.ts";
+import { extractBearerToken } from "./routes/auth.ts";
 
 export function jsonResponse<T>(data: T, status = 200): Response {
   const body: ApiResponse<T> = { ok: true, data };
@@ -31,10 +31,15 @@ type RouteHandler = (req: Request, params: Record<string, string>) => Response |
 
 export function withAuth(handler: RouteHandler): RouteHandler {
   return (req, params) => {
-    const key = req.headers.get("X-API-Key");
-    if (key !== API_KEY) {
-      throw new AuthError();
-    }
+    const token = extractBearerToken(req);
+    if (!token) throw new AuthError();
+
+    const db = getDb();
+    const session = db.query(
+      "SELECT id FROM sessions WHERE token = ? AND expires_at > datetime('now')",
+    ).get(token);
+
+    if (!session) throw new AuthError();
     return handler(req, params);
   };
 }

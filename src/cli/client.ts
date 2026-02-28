@@ -3,15 +3,18 @@ import type { ApiResponse } from "../shared/types.ts";
 export class ApiClient {
   constructor(
     private baseUrl: string,
-    private apiKey: string,
+    private token: string | null,
   ) {}
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${path}`;
     const headers: Record<string, string> = {
-      "X-API-Key": this.apiKey,
       "Content-Type": "application/json",
     };
+
+    if (this.token) {
+      headers["Authorization"] = `Bearer ${this.token}`;
+    }
 
     const res = await fetch(url, {
       method,

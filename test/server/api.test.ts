@@ -10,8 +10,8 @@ afterAll(() => {
 });
 
 // Reset DB between tests for isolation (recreates tables so IDs start from 1)
-beforeEach(() => {
-  resetTestDb();
+beforeEach(async () => {
+  await resetTestDb();
 });
 
 // ─── Health ──────────────────────────────────────────────────────
@@ -29,19 +29,129 @@ describe("Health", () => {
 // ─── Auth ────────────────────────────────────────────────────────
 
 describe("Auth", () => {
-  test("returns 401 without API key", async () => {
-    // Use api helper URL but strip auth
+  test("returns 401 without token", async () => {
     const res = await api("/api/projects", {
-      headers: { "X-API-Key": "" },
+      headers: { Authorization: "" },
     });
     expect(res.status).toBe(401);
   });
 
-  test("returns 401 with wrong API key", async () => {
+  test("returns 401 with invalid token", async () => {
     const res = await api("/api/projects", {
-      headers: { "X-API-Key": "wrong-key" },
+      headers: { Authorization: "Bearer invalid-token" },
     });
     expect(res.status).toBe(401);
+  });
+
+  test("register creates user and returns token", async () => {
+    const res = await api("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "new@example.com", password: "password123" }),
+    });
+    expect(res.status).toBe(201);
+    const body = await apiJson<{ token: string; user: { email: string } }>(res);
+    expect(body.ok).toBe(true);
+    expect(body.data.token).toBeTruthy();
+    expect(body.data.user.email).toBe("new@example.com");
+  });
+
+  test("register rejects duplicate email", async () => {
+    // test@example.com is already seeded
+    const res = await api("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "test@example.com", password: "password123" }),
+    });
+    expect(res.status).toBe(400);
+    const body = await apiJson<unknown>(res);
+    expect(body.error).toContain("already exists");
+  });
+
+  test("register rejects short password", async () => {
+    const res = await api("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "short@example.com", password: "abc" }),
+    });
+    expect(res.status).toBe(400);
+    const body = await apiJson<unknown>(res);
+    expect(body.error).toContain("at least 8");
+  });
+
+  test("register rejects invalid email", async () => {
+    const res = await api("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "not-an-email", password: "password123" }),
+    });
+    expect(res.status).toBe(400);
+    const body = await apiJson<unknown>(res);
+    expect(body.error).toContain("valid email");
+  });
+
+  test("login with valid credentials returns token", async () => {
+    const res = await api("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "test@example.com", password: "testpassword123" }),
+    });
+    expect(res.status).toBe(200);
+    const body = await apiJson<{ token: string; user: { email: string } }>(res);
+    expect(body.ok).toBe(true);
+    expect(body.data.token).toBeTruthy();
+    expect(body.data.user.email).toBe("test@example.com");
+  });
+
+  test("login with wrong password returns 401", async () => {
+    const res = await api("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "test@example.com", password: "wrongpassword" }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  test("login with non-existent email returns 401", async () => {
+    const res = await api("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "noone@example.com", password: "password123" }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  test("logout invalidates session", async () => {
+    // Login to get a new token
+    const loginRes = await api("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "test@example.com", password: "testpassword123" }),
+    });
+    const loginBody = await apiJson<{ token: string }>(loginRes);
+    const newToken = loginBody.data.token;
+
+    // Logout
+    const logoutRes = await api("/api/auth/logout", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${newToken}` },
+    });
+    expect(logoutRes.status).toBe(200);
+
+    // Verify token is invalid
+    const meRes = await api("/api/auth/me", {
+      headers: { Authorization: `Bearer ${newToken}` },
+    });
+    expect(meRes.status).toBe(401);
+  });
+
+  test("GET /api/auth/me returns current user", async () => {
+    const res = await api("/api/auth/me");
+    expect(res.status).toBe(200);
+    const body = await apiJson<{ email: string; id: number }>(res);
+    expect(body.ok).toBe(true);
+    expect(body.data.email).toBe("test@example.com");
+    expect(body.data.id).toBe(1);
   });
 });
 

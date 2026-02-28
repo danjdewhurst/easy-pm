@@ -50,6 +50,44 @@ export interface CardLabel {
   label_id: number;
 }
 
+// Auth types
+
+export interface User {
+  id: number;
+  email: string;
+  password_hash: string;
+  created_at: string;
+}
+
+export interface PublicUser {
+  id: number;
+  email: string;
+  created_at: string;
+}
+
+export interface Session {
+  id: number;
+  user_id: number;
+  token: string;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: PublicUser;
+}
+
 // API request/response types
 
 export interface CreateProject {

@@ -12,6 +12,8 @@ interface SidebarProps {
   onCreateBoard: (name: string) => void;
   theme: "light" | "dark";
   onToggleTheme: () => void;
+  userEmail?: string;
+  onLogout?: () => void;
 }
 
 export function Sidebar({
@@ -25,6 +27,8 @@ export function Sidebar({
   onCreateBoard,
   theme,
   onToggleTheme,
+  userEmail,
+  onLogout,
 }: SidebarProps) {
   const [newProjectName, setNewProjectName] = useState("");
   const [newBoardName, setNewBoardName] = useState("");
@@ -229,10 +233,33 @@ export function Sidebar({
 
       {/* Footer */}
       <div
-        className="px-5 py-3 border-t text-[10px]"
-        style={{ borderColor: 'var(--border)', color: 'var(--text-faint)' }}
+        className="px-5 py-3 border-t space-y-2"
+        style={{ borderColor: 'var(--border)' }}
       >
-        {selectedProject ? selectedProject.name : "No project selected"}
+        <div className="text-[10px]" style={{ color: 'var(--text-faint)' }}>
+          {selectedProject ? selectedProject.name : "No project selected"}
+        </div>
+        {userEmail && (
+          <div className="flex items-center justify-between">
+            <span
+              className="text-[10px] truncate max-w-[140px]"
+              style={{ color: 'var(--text-muted)' }}
+              title={userEmail}
+            >
+              {userEmail}
+            </span>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="text-[10px] font-medium transition-colors duration-150"
+                style={{ color: 'var(--text-muted)' }}
+                title="Sign out"
+              >
+                Sign out
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </aside>
   );

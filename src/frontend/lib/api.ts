@@ -1,5 +1,7 @@
 import type {
   ApiResponse,
+  AuthResponse,
+  PublicUser,
   Project,
   Board,
   BoardView,
@@ -9,17 +11,41 @@ import type {
   SearchResult,
 } from "../../shared/types.ts";
 
-const API_KEY = "dev-api-key";
+const TOKEN_KEY = "easy_pm_token";
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  const token = getToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(path, {
     method,
-    headers: {
-      "X-API-Key": API_KEY,
-      "Content-Type": "application/json",
-    },
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+
+  if (res.status === 401) {
+    clearToken();
+    window.location.href = "/login";
+    throw new Error("Unauthorised");
+  }
 
   const json = (await res.json()) as ApiResponse<T>;
   if (!json.ok) {
@@ -27,6 +53,14 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
   return json.data as T;
 }
+
+// Auth
+export const apiLogin = (email: string, password: string) =>
+  request<AuthResponse>("POST", "/api/auth/login", { email, password });
+export const apiRegister = (email: string, password: string) =>
+  request<AuthResponse>("POST", "/api/auth/register", { email, password });
+export const apiLogout = () => request<unknown>("POST", "/api/auth/logout");
+export const apiGetMe = () => request<PublicUser>("GET", "/api/auth/me");
 
 // Projects
 export const listProjects = () => request<Project[]>("GET", "/api/projects");

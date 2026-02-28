@@ -1,5 +1,6 @@
 import { parseArgs } from "util";
 import { ApiClient } from "./client.ts";
+import { loadConfig } from "./config.ts";
 import type { OutputFormat } from "./output.ts";
 import { projectCommand } from "./commands/projects.ts";
 import { boardCommand } from "./commands/boards.ts";
@@ -7,10 +8,12 @@ import { columnCommand } from "./commands/columns.ts";
 import { cardCommand } from "./commands/cards.ts";
 import { labelCommand } from "./commands/labels.ts";
 import { searchCommand } from "./commands/search.ts";
+import { authCommand } from "./commands/auth.ts";
 
 const USAGE = `Usage: easy-pm <resource> <action> [options]
 
 Resources:
+  auth      register|login|logout|whoami
   project   list|create|get|update|delete
   board     list|create|get|update|delete
   column    create|update|delete|reorder
@@ -21,7 +24,11 @@ Resources:
 Global options:
   --format    json|table (default: table)
   --api-url   Server URL (default: http://localhost:3000)
-  --api-key   API key (default: from EASY_PM_API_KEY env)
+  --token     Auth token (default: from config file)
+
+Auth options:
+  --email     Email address (for register/login)
+  --password  Password (for register/login)
 `;
 
 try {
@@ -30,7 +37,7 @@ try {
     options: {
       format: { type: "string", default: "table" },
       "api-url": { type: "string", default: process.env["EASY_PM_API_URL"] ?? "http://localhost:3000" },
-      "api-key": { type: "string", default: process.env["EASY_PM_API_KEY"] ?? "dev-api-key" },
+      token: { type: "string" },
       // Resource-specific options
       id: { type: "string" },
       name: { type: "string" },
@@ -45,6 +52,8 @@ try {
       colour: { type: "string" },
       "label-ids": { type: "string" },
       ids: { type: "string" },
+      email: { type: "string" },
+      password: { type: "string" },
       help: { type: "boolean", short: "h" },
     },
     allowPositionals: true,
@@ -56,13 +65,20 @@ try {
     process.exit(0);
   }
 
+  // Resolve token: --token flag > config file > null
+  const config = await loadConfig();
+  const token = (values.token as string | undefined) ?? config.token ?? null;
+
   const resource = positionals[0];
   const action = positionals[1] ?? "";
   const format = (values.format as OutputFormat) ?? "table";
-  const client = new ApiClient(values["api-url"] as string, values["api-key"] as string);
+  const client = new ApiClient(values["api-url"] as string, token);
   const args = values as Record<string, string | boolean | undefined>;
 
   switch (resource) {
+    case "auth":
+      await authCommand(client, action, args, format);
+      break;
     case "project":
       await projectCommand(client, action, args, format);
       break;

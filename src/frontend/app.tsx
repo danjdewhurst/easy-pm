@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { createRoot } from "react-dom/client";
-import type { Project, Board as BoardType, BoardView, Label } from "../shared/types.ts";
+import type { Project, Board as BoardType, BoardView, Label, PublicUser } from "../shared/types.ts";
 import * as api from "./lib/api.ts";
 import { Sidebar } from "./components/Sidebar.tsx";
 import { BoardComponent } from "./components/Board.tsx";
 import { SearchBar } from "./components/SearchBar.tsx";
+import { LoginPage } from "./components/LoginPage.tsx";
+import { RegisterPage } from "./components/RegisterPage.tsx";
 
 function parseRoute(): { projectId?: number; boardId?: number } {
   const match = window.location.pathname.match(
@@ -31,7 +33,12 @@ function getInitialTheme(): Theme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-function App() {
+interface AppProps {
+  user: PublicUser;
+  onLogout: () => void;
+}
+
+function App({ user, onLogout }: AppProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [boards, setBoards] = useState<BoardType[]>([]);
@@ -169,6 +176,8 @@ function App() {
         onCreateBoard={handleCreateBoard}
         theme={theme}
         onToggleTheme={toggleTheme}
+        userEmail={user.email}
+        onLogout={onLogout}
       />
       <main className="flex-1 flex flex-col overflow-hidden" style={{ background: 'var(--surface-0)' }}>
         {/* Header */}
@@ -258,5 +267,89 @@ function App() {
   );
 }
 
+type AuthState = "loading" | "unauthenticated" | "authenticated";
+type Page = "login" | "register";
+
+function Root() {
+  const [authState, setAuthState] = useState<AuthState>("loading");
+  const [user, setUser] = useState<PublicUser | null>(null);
+  const [page, setPage] = useState<Page>(
+    window.location.pathname === "/register" ? "register" : "login",
+  );
+
+  useEffect(() => {
+    const token = api.getToken();
+    if (!token) {
+      setAuthState("unauthenticated");
+      return;
+    }
+    api.apiGetMe()
+      .then((u) => {
+        setUser(u);
+        setAuthState("authenticated");
+      })
+      .catch(() => {
+        api.clearToken();
+        setAuthState("unauthenticated");
+      });
+  }, []);
+
+  const handleLogin = async (email: string, password: string) => {
+    const res = await api.apiLogin(email, password);
+    api.setToken(res.token);
+    setUser(res.user);
+    setAuthState("authenticated");
+    history.replaceState(null, "", "/");
+  };
+
+  const handleRegister = async (email: string, password: string) => {
+    const res = await api.apiRegister(email, password);
+    api.setToken(res.token);
+    setUser(res.user);
+    setAuthState("authenticated");
+    history.replaceState(null, "", "/");
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.apiLogout();
+    } catch {
+      // Ignore — token may already be invalid
+    }
+    api.clearToken();
+    setUser(null);
+    setAuthState("unauthenticated");
+    history.replaceState(null, "", "/login");
+  };
+
+  const navigateToRegister = () => {
+    setPage("register");
+    history.replaceState(null, "", "/register");
+  };
+
+  const navigateToLogin = () => {
+    setPage("login");
+    history.replaceState(null, "", "/login");
+  };
+
+  if (authState === "loading") {
+    return (
+      <div className="h-full flex items-center justify-center" style={{ background: "var(--surface-0)" }}>
+        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading…</p>
+      </div>
+    );
+  }
+
+  if (authState === "unauthenticated") {
+    return page === "register" ? (
+      <RegisterPage onRegister={handleRegister} onNavigateToLogin={navigateToLogin} />
+    ) : (
+      <LoginPage onLogin={handleLogin} onNavigateToRegister={navigateToRegister} />
+    );
+  }
+
+  return <App user={user!} onLogout={handleLogout} />;
+}
+
 const root = createRoot(document.getElementById("root")!);
-root.render(<App />);
+root.render(<Root />);

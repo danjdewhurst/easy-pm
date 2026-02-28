@@ -1,6 +1,7 @@
 import { DEFAULT_PORT } from "../shared/constants.ts";
 import { withAuth, errorResponse, matchRoute } from "./middleware.ts";
 import { handleHealth } from "./routes/health.ts";
+import { register, login, logout, me } from "./routes/auth.ts";
 import { listProjects, createProject, getProject, updateProject, deleteProject } from "./routes/projects.ts";
 import { listBoards, createBoard, getBoard, updateBoard, deleteBoard } from "./routes/boards.ts";
 import { createColumn, updateColumn, deleteColumn, reorderColumns } from "./routes/columns.ts";
@@ -21,6 +22,12 @@ interface Route {
 const routes: Route[] = [
   // Health (no auth)
   { method: "GET", pattern: "/api/health", handler: handleHealth as RouteHandler, auth: false },
+
+  // Auth (no auth required for register/login)
+  { method: "POST", pattern: "/api/auth/register", handler: register as RouteHandler, auth: false },
+  { method: "POST", pattern: "/api/auth/login", handler: login as RouteHandler, auth: false },
+  { method: "POST", pattern: "/api/auth/logout", handler: logout as RouteHandler, auth: true },
+  { method: "GET", pattern: "/api/auth/me", handler: me as RouteHandler, auth: true },
 
   // Projects
   { method: "GET", pattern: "/api/projects", handler: listProjects as RouteHandler, auth: true },
@@ -87,6 +94,8 @@ export function createServer(port?: number) {
     port: p,
     routes: {
       "/": homepage,
+      "/login": homepage,
+      "/register": homepage,
       "/projects/*": homepage,
     },
     async fetch(req) {
