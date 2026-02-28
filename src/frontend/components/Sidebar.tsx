@@ -70,7 +70,7 @@ export function Sidebar({
     >
       {/* Brand */}
       <div
-        className="px-5 py-4 border-b flex items-center justify-between"
+        className="px-5 h-[57px] border-b flex items-center justify-between"
         style={{ borderColor: 'var(--border)' }}
       >
         <h2 className="font-brand text-xl tracking-tight" style={{ color: 'var(--accent)' }}>

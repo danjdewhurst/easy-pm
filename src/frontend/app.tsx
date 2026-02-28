@@ -182,7 +182,7 @@ function App({ user, onLogout }: AppProps) {
       <main className="flex-1 flex flex-col overflow-hidden" style={{ background: 'var(--surface-0)' }}>
         {/* Header */}
         <header
-          className="flex items-center justify-between px-8 py-4 border-b"
+          className="flex items-center justify-between px-8 h-[57px] border-b"
           style={{ borderColor: 'var(--border)', background: 'var(--surface-1)' }}
         >
           <div className="flex items-center gap-3">
