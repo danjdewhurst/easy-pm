@@ -3,45 +3,51 @@
 (
 &:where(.dark, .dark *));
 
-/* ── Design tokens ── */
+/* ── Design tokens (Catppuccin Latte / Frappé) ── */
 :root {
-  --accent: #d4603a;
-  --accent-hover: #c04e2a;
-  --accent-subtle: #d4603a18;
-  --accent-muted: #d4603a30;
+  --accent: #fe640b;           /* Latte Peach */
+  --accent-hover: #dd5709;
+  --accent-subtle: #fe640b15;
+  --accent-muted: #fe640b30;
 
-  --surface-0: #faf9f7;
-  --surface-1: #ffffff;
-  --surface-2: #f5f3f0;
-  --surface-3: #ece9e4;
+  --surface-0: #eff1f5;        /* Latte Base */
+  --surface-1: #e6e9ef;        /* Latte Mantle */
+  --surface-2: #ccd0da;        /* Latte Surface0 */
+  --surface-3: #bcc0cc;        /* Latte Surface1 */
 
-  --border: #e5e1db;
-  --border-subtle: #ece9e4;
+  --border: #bcc0cc;           /* Latte Surface1 */
+  --border-subtle: #ccd0da;    /* Latte Surface0 */
 
-  --text-primary: #1c1917;
-  --text-secondary: #57534e;
-  --text-muted: #a8a29e;
-  --text-faint: #d6d3d1;
+  --text-primary: #4c4f69;     /* Latte Text */
+  --text-secondary: #5c5f77;   /* Latte Subtext1 */
+  --text-muted: #8c8fa1;       /* Latte Overlay1 */
+  --text-faint: #acb0be;       /* Latte Surface2 */
+
+  --error: #d20f39;            /* Latte Red */
+  --error-subtle: #d20f3920;
 }
 
 .dark {
-  --accent: #e8764f;
-  --accent-hover: #f08a65;
-  --accent-subtle: #e8764f12;
-  --accent-muted: #e8764f28;
+  --accent: #ef9f76;           /* Frappé Peach */
+  --accent-hover: #f2b08e;
+  --accent-subtle: #ef9f7612;
+  --accent-muted: #ef9f7628;
 
-  --surface-0: #111110;
-  --surface-1: #1a1918;
-  --surface-2: #222120;
-  --surface-3: #2c2b29;
+  --surface-0: #303446;        /* Frappé Base */
+  --surface-1: #292c3c;        /* Frappé Mantle */
+  --surface-2: #414559;        /* Frappé Surface0 */
+  --surface-3: #51576d;        /* Frappé Surface1 */
 
-  --border: #2c2b29;
-  --border-subtle: #222120;
+  --border: #51576d;           /* Frappé Surface1 */
+  --border-subtle: #414559;    /* Frappé Surface0 */
 
-  --text-primary: #f5f5f4;
-  --text-secondary: #a8a29e;
-  --text-muted: #78716c;
-  --text-faint: #44403c;
+  --text-primary: #c6d0f5;     /* Frappé Text */
+  --text-secondary: #b5bfe2;   /* Frappé Subtext1 */
+  --text-muted: #838ba7;       /* Frappé Overlay1 */
+  --text-faint: #626880;       /* Frappé Surface2 */
+
+  --error: #e78284;            /* Frappé Red */
+  --error-subtle: #e7828420;
 }
 
 /* ── Base ── */

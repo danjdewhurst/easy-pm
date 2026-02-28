@@ -1,10 +1,10 @@
 # Design System
 
-This document defines the visual language, tokens, and patterns used across the easy-pm frontend. All design decisions flow from a single aesthetic direction: **warm editorial utility** — clean and productive, with enough warmth and character to feel intentionally designed rather than generically generated.
+This document defines the visual language, tokens, and patterns used across the easy-pm frontend. The colour system is built on [Catppuccin](https://github.com/catppuccin/catppuccin) — **Latte** for light mode and **Frappé** for dark mode — with Peach as the accent colour.
 
 ## Aesthetic Principles
 
-1. **Warm over cool** — Stone and terracotta over slate and indigo. The palette should feel like paper and ink, not chrome and neon.
+1. **Warm Catppuccin tones** — Peach accent with pastel surfaces. The palette uses Catppuccin's carefully balanced colours for a cohesive, easy-on-the-eyes feel.
 2. **Purposeful detail** — Every animation, icon, and spacing choice should serve comprehension or delight. Nothing decorative without function.
 3. **Quiet confidence** — The UI should recede when you're working and reward attention when you look closely. Subtle textures, refined typography, considered hover states.
 
@@ -31,39 +31,46 @@ This document defines the visual language, tokens, and patterns used across the 
 
 All colours are defined as CSS custom properties on `:root` and `.dark`, making theme switching a single class toggle on `<html>`.
 
-### Accent
+### Accent (Catppuccin Peach)
 
-| Token | Light | Dark | Usage |
-|-------|-------|------|-------|
-| `--accent` | `#d4603a` | `#e8764f` | Primary actions, brand mark, active indicators |
-| `--accent-hover` | `#c04e2a` | `#f08a65` | Hover state for accent elements |
-| `--accent-subtle` | `#d4603a18` | `#e8764f12` | Background tint (selected items, empty state icons) |
-| `--accent-muted` | `#d4603a30` | `#e8764f28` | Text selection highlight, loading spinner track |
+| Token | Light (Latte) | Dark (Frappé) | Usage |
+|-------|---------------|---------------|-------|
+| `--accent` | `#fe640b` | `#ef9f76` | Primary actions, brand mark, active indicators |
+| `--accent-hover` | `#dd5709` | `#f2b08e` | Hover state for accent elements |
+| `--accent-subtle` | `#fe640b15` | `#ef9f7612` | Background tint (selected items, empty state icons) |
+| `--accent-muted` | `#fe640b30` | `#ef9f7628` | Text selection highlight, loading spinner track |
 
 ### Surfaces
 
-| Token | Light | Dark | Usage |
-|-------|-------|------|-------|
-| `--surface-0` | `#faf9f7` | `#111110` | Page background, card backgrounds |
-| `--surface-1` | `#ffffff` | `#1a1918` | Sidebar, header, modals, columns |
-| `--surface-2` | `#f5f3f0` | `#222120` | Input backgrounds, badges, hover fills |
-| `--surface-3` | `#ece9e4` | `#2c2b29` | Kbd elements, secondary badges |
+| Token | Light (Latte) | Dark (Frappé) | Catppuccin name | Usage |
+|-------|---------------|---------------|-----------------|-------|
+| `--surface-0` | `#eff1f5` | `#303446` | Base | Page background, card backgrounds |
+| `--surface-1` | `#e6e9ef` | `#292c3c` | Mantle | Sidebar, header, modals, columns |
+| `--surface-2` | `#ccd0da` | `#414559` | Surface0 | Input backgrounds, badges, hover fills |
+| `--surface-3` | `#bcc0cc` | `#51576d` | Surface1 | Kbd elements, secondary badges |
 
 ### Borders
 
-| Token | Light | Dark | Usage |
-|-------|-------|------|-------|
-| `--border` | `#e5e1db` | `#2c2b29` | Primary borders (sidebar, header, columns, modals) |
-| `--border-subtle` | `#ece9e4` | `#222120` | Inner borders (column dividers, card borders) |
+| Token | Light (Latte) | Dark (Frappé) | Catppuccin name | Usage |
+|-------|---------------|---------------|-----------------|-------|
+| `--border` | `#bcc0cc` | `#51576d` | Surface1 | Primary borders (sidebar, header, columns, modals) |
+| `--border-subtle` | `#ccd0da` | `#414559` | Surface0 | Inner borders (column dividers, card borders) |
 
 ### Text
 
-| Token | Light | Dark | Usage |
-|-------|-------|------|-------|
-| `--text-primary` | `#1c1917` | `#f5f5f4` | Headings, card titles, input values |
-| `--text-secondary` | `#57534e` | `#a8a29e` | Body text, nav items, button labels |
-| `--text-muted` | `#a8a29e` | `#78716c` | Metadata, section labels, placeholders |
-| `--text-faint` | `#d6d3d1` | `#44403c` | Decorative text, disabled states, faint icons |
+| Token | Light (Latte) | Dark (Frappé) | Catppuccin name | Usage |
+|-------|---------------|---------------|-----------------|-------|
+| `--text-primary` | `#4c4f69` | `#c6d0f5` | Text | Headings, card titles, input values |
+| `--text-secondary` | `#5c5f77` | `#b5bfe2` | Subtext1 | Body text, nav items, button labels |
+| `--text-muted` | `#8c8fa1` | `#838ba7` | Overlay1 | Metadata, section labels, placeholders |
+| `--text-faint` | `#acb0be` | `#626880` | Surface2 | Decorative text, disabled states, faint icons |
+
+### Error (Catppuccin Red)
+
+| Token | Light (Latte) | Dark (Frappé) | Usage |
+|-------|---------------|---------------|-------|
+| `--error` | `#d20f39` | `#e78284` | Error text, invalid borders, danger actions |
+| `--error-subtle` | `#d20f3920` | `#e7828420` | Error message backgrounds |
 
 ### Applying tokens
 
@@ -161,7 +168,7 @@ The app uses a consistent spacing scale based on Tailwind's defaults:
 
 - Centred card layout: `max-w-sm`, `rounded-2xl`, `--surface-1` background
 - Brand logotype at the top in `--accent` colour
-- Error messages in a tinted `#ef4444` banner
+- Error messages in a tinted `--error-subtle` / `--error` banner
 - Primary submit button spans full width
 - Navigation link between login/register at the bottom
 - Entrance animation: `animate-scale-in`
@@ -172,14 +179,14 @@ The app uses a consistent spacing scale based on Tailwind's defaults:
 |---------|-------|
 | Primary | `--accent` background, white text, `btn-press` |
 | Secondary/Cancel | No background, `--text-secondary` colour |
-| Danger | `#ef4444` text, underline on hover |
+| Danger | `--error` text, underline on hover |
 | Ghost (sidebar +) | Icon only, `hover:scale-110` |
 | Add card/column | `--text-muted` colour, plus icon rotates 90deg on hover |
 
 ### Inputs
 
 - Background: `--surface-2`
-- Border: `--border` (default), `--accent` (focused/active new-item forms), `#ef4444` (error)
+- Border: `--border` (default), `--accent` (focused/active new-item forms), `--error` (error)
 - Text: `--text-primary`
 - Rounded: `rounded-lg` (8px) for form fields, `rounded-md` (6px) for sidebar inline inputs
 

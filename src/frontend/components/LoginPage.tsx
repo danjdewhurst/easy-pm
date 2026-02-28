@@ -47,7 +47,7 @@ export function LoginPage({ onLogin, onNavigateToRegister }: LoginPageProps) {
 				{error && (
 					<div
 						className="text-sm px-3 py-2 rounded-lg mb-4"
-						style={{ background: "#ef444420", color: "#ef4444" }}
+						style={{ background: "var(--error-subtle)", color: "var(--error)" }}
 					>
 						{error}
 					</div>

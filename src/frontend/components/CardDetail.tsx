@@ -127,7 +127,10 @@ export function CardDetail({
 					{error && (
 						<div
 							className="text-sm px-3 py-2 rounded-lg"
-							style={{ background: "#ef444420", color: "#ef4444" }}
+							style={{
+								background: "var(--error-subtle)",
+								color: "var(--error)",
+							}}
 						>
 							{error}
 						</div>
@@ -199,11 +202,16 @@ export function CardDetail({
 								className="w-full px-3 py-2 text-sm border rounded-lg transition-colors duration-150 focus:outline-none"
 								style={{
 									...inputStyle,
-									borderColor: isEstimateValid ? "var(--border)" : "#ef4444",
+									borderColor: isEstimateValid
+										? "var(--border)"
+										: "var(--error)",
 								}}
 							/>
 							{!isEstimateValid && (
-								<p className="text-[11px] mt-1" style={{ color: "#ef4444" }}>
+								<p
+									className="text-[11px] mt-1"
+									style={{ color: "var(--error)" }}
+								>
 									Use format like 30m, 1h, or 1h 30m
 								</p>
 							)}
@@ -253,7 +261,7 @@ export function CardDetail({
 					<button
 						onClick={handleDelete}
 						className="text-sm font-medium transition-all duration-150 hover:underline underline-offset-2 btn-press"
-						style={{ color: "#ef4444" }}
+						style={{ color: "var(--error)" }}
 					>
 						Delete card
 					</button>

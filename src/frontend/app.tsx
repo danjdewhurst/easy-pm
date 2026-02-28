@@ -243,7 +243,7 @@ function App({ user, onLogout }: AppProps) {
 				{error && (
 					<div
 						className="px-4 py-2.5 text-sm text-center animate-slide-down"
-						style={{ background: "#ef444420", color: "#ef4444" }}
+						style={{ background: "var(--error-subtle)", color: "var(--error)" }}
 					>
 						{error}
 					</div>
