@@ -51,6 +51,13 @@ On error:
 | 404 | Resource not found |
 | 500 | Internal server error |
 
+## Conventions
+
+- **Content-Type**: All mutation endpoints (`POST`, `PUT`) expect `Content-Type: application/json`
+- **Input trimming**: String fields are automatically trimmed of leading/trailing whitespace
+- **Email normalisation**: Email addresses are lowered to lowercase on register and login
+- **Parent validation**: Endpoints that create or list child resources (e.g. `POST /api/projects/:id/boards`) return 404 if the parent resource does not exist
+
 ---
 
 ## Health
@@ -109,6 +116,8 @@ Create a new user account and return a session token. No authentication required
 }
 ```
 
+Returns 400 with `"A user with this email already exists"` if the email is already registered.
+
 ### `POST /api/auth/login`
 
 Authenticate with email and password. No authentication required.
@@ -124,7 +133,7 @@ Authenticate with email and password. No authentication required.
 
 **Response (200)**: Same shape as register — `{ token, user }`.
 
-Returns 401 if the email doesn't exist or the password is wrong.
+Returns 401 with `"Invalid email or password"` if the email doesn't exist or the password is wrong.
 
 ### `POST /api/auth/logout`
 
@@ -411,7 +420,7 @@ Create a card within a column.
 | `title` | string | Yes | 1–500 characters |
 | `description` | string \| null | No | Max 5000 characters |
 | `due_date` | string \| null | No | Valid ISO 8601 date |
-| `time_estimate` | integer \| null | No | Non-negative, in minutes |
+| `time_estimate` | integer \| string \| null | No | Minutes as integer, or human-readable string (`"1h 30m"`, `"2h"`, `"45m"`). Stored as integer minutes |
 | `position` | integer | No | Non-negative. Defaults to last + 1000 |
 
 **Response (201)**: Card object with empty `labels` array.

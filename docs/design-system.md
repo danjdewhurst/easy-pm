@@ -12,9 +12,10 @@ This document defines the visual language, tokens, and patterns used across the 
 
 | Role | Font | Weight | Size | Tracking |
 |------|------|--------|------|----------|
-| Brand logotype | Instrument Serif | 400 | 20px (`text-xl`) | tight |
+| Brand logotype | Instrument Serif | 400 | 20px sidebar (`text-xl`), 24px auth pages (`text-2xl`) | tight |
 | Page headings | Plus Jakarta Sans | 600 | 16px (`text-base`) | tight |
-| Section labels | Plus Jakarta Sans | 600 | 10-11px | 0.08em (wide) |
+| Section labels (sidebar) | Plus Jakarta Sans | 600 | 10-11px | 0.08em |
+| Section labels (modals) | Plus Jakarta Sans | 600 | 11px | 0.05em (`tracking-wider`) |
 | Card titles | Plus Jakarta Sans | 500 | 13px | normal |
 | Body/inputs | Plus Jakarta Sans | 400 | 13-14px (`text-sm`) | normal |
 | Metadata | Plus Jakarta Sans | 400 | 11px | normal |
@@ -95,7 +96,7 @@ The `cubic-bezier(0.16, 1, 0.3, 1)` curve is a spring-like ease-out that oversho
 | `.animate-slide-up` | Applies `slideUp` |
 | `.animate-slide-down` | Applies `slideDown` |
 | `.animate-scale-in` | Applies `scaleIn` |
-| `.card-enter` | `slideUp` with `backwards` fill (for staggered delays) |
+| `.card-enter` | `slideUp` at 350ms (slightly longer than `.animate-slide-up`) with `backwards` fill for staggered delays |
 | `.overlay-enter` | `fadeIn` for modal overlays |
 | `.btn-press` | `transform: scale(0.97)` on `:active` |
 
@@ -119,13 +120,16 @@ The app uses a consistent spacing scale based on Tailwind's defaults:
 | Context | Value | Tailwind |
 |---------|-------|----------|
 | Page padding | 24px | `p-6` |
-| Header padding | 32px horizontal, 16px vertical | `px-8 py-4` |
+| Header padding | 32px horizontal, 57px height | `px-8 h-[57px]` (vertical centring via flexbox) |
 | Sidebar padding | 20px horizontal | `px-5` |
 | Column gap | 20px | `gap-5` |
-| Card gap (within column) | 8px | `space-y-2` |
+| Card gap (within column) | 8px | `mt-2` per card (not `space-y-2`, for drag-and-drop compatibility) |
 | Card inner padding | 12px | `p-3` |
 | Modal inner padding | 24px | `p-6` |
+| Auth page padding | 32px | `p-8` |
 | Form field gap | 16px | `gap-4` |
+| Sidebar width | 240px | `w-60` |
+| Header height | 57px | `h-[57px]` (shared between sidebar brand area and main header) |
 
 ## Components
 
@@ -147,7 +151,7 @@ The app uses a consistent spacing scale based on Tailwind's defaults:
 
 ### Modals (CardDetail, SearchBar)
 
-- Overlay: `rgba(0,0,0,0.4)` with `backdrop-blur(4px)` (card detail) or `backdrop-blur(8px)` (search)
+- Overlay: `rgba(0,0,0,0.4)` with `backdrop-blur(4px)` (card detail) or `rgba(0,0,0,0.35)` with `backdrop-blur(8px)` (search)
 - Container: `--surface-1` background, `--border` border, `rounded-2xl`, `shadow-2xl`
 - Card detail has a 4px accent-coloured bar at the top
 - Search modal positioned at 18vh from top
@@ -195,6 +199,24 @@ Selected state in the card detail modal uses `border-2` with the label colour. U
 - `::selection` — Uses `--accent-muted` background for a cohesive feel when selecting text.
 - Modals use `shadow-2xl` for dramatic elevation.
 - Cards use `shadow-md` only on hover, keeping the resting state flat.
+
+## Drag and Drop
+
+Cards are draggable between columns using HTML5 drag events. Three CSS classes control the visual states:
+
+| Class | Effect |
+|-------|--------|
+| `.card-dragging` | Applied to the source card — 40% opacity, slight scale-down (0.97), no shadow |
+| `.drop-indicator` | 3px accent-coloured bar between cards showing the drop target position |
+| `.column-drag-over` | Background changes to `--accent-subtle` on the target column |
+
+The column border also changes to `--accent` while a card is dragged over it.
+
+## Focus & Accessibility
+
+- `:focus-visible` ring: 2px solid `--accent` with 2px offset and 4px border-radius
+- `::selection` uses `--accent-muted` background
+- Date picker indicator is styled with reduced opacity (0.5), inverted in dark mode
 
 ## Iconography
 

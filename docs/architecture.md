@@ -84,6 +84,8 @@ test/
     api.test.ts            # API integration tests (auth, CRUD, search)
   cli/
     cli.test.ts            # CLI integration tests
+  shared/
+    validate.test.ts       # Shared utility unit tests
 ```
 
 ## Data Model
@@ -91,6 +93,9 @@ test/
 The hierarchy is strictly tree-shaped:
 
 ```
+User
+  └── Session
+
 Project
   ├── Board
   │     └── Column (ordered by position)
@@ -99,10 +104,12 @@ Project
   └── Label ──────────────────────────────┘
 ```
 
+- **Users** own sessions; a user can have multiple active sessions
+- **Sessions** store bearer tokens with a 30-day expiry
 - **Projects** are top-level containers
 - **Boards** belong to exactly one project
 - **Columns** belong to exactly one board and are ordered by `position`
-- **Cards** belong to exactly one column and are ordered by `position`
+- **Cards** belong to exactly one column and are ordered by `position`. Cards also have optional `due_date` and `time_estimate` (in minutes) fields
 - **Labels** belong to a project and can be assigned to any card within that project via the `card_labels` join table
 
 All parent-child relationships use `ON DELETE CASCADE`.
@@ -112,11 +119,11 @@ All parent-child relationships use `ON DELETE CASCADE`.
 The `src/shared/` directory contains code used by multiple parts of the application:
 
 - **`types.ts`**: TypeScript interfaces for all entities, request/response shapes, and the API envelope. Imported by server routes, CLI commands, and frontend components.
-- **`constants.ts`**: Validation limits (`MAX_NAME_LENGTH`, `MAX_TITLE_LENGTH`, etc.), `POSITION_GAP` (1000), and the colour regex pattern.
+- **`constants.ts`**: Validation limits (`MAX_NAME_LENGTH`, `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH`), `POSITION_GAP` (1000), `VALID_COLOUR_PATTERN`, and auth-related constants (`DEFAULT_PORT`, `SESSION_EXPIRY_DAYS`, `MIN_PASSWORD_LENGTH`, `MAX_EMAIL_LENGTH`).
 - **`errors.ts`**: Error class hierarchy. `AppError` is the base; `NotFoundError` (404), `ValidationError` (400), and `AuthError` (401) extend it. The server middleware catches these and returns appropriate HTTP responses.
-- **`schema.ts`**: The full SQL DDL as a string. Applied once when the database is first opened.
-- **`db.ts`**: Module-scoped singleton pattern. `getDb()` returns (or creates) the connection. `resetDb()` clears the singleton for testing.
-- **`validate.ts`**: Pure validation functions that throw `ValidationError` on bad input. Used by route handlers to validate request bodies.
+- **`schema.ts`**: The full SQL DDL as a string, including all tables (`projects`, `boards`, `columns`, `cards`, `labels`, `card_labels`, `users`, `sessions`), the FTS5 virtual table, and sync triggers. Applied once when the database is first opened.
+- **`db.ts`**: Module-scoped singleton pattern. `getDb()` returns (or creates) the connection, enabling WAL journal mode and foreign keys on creation. `closeDb()` closes the connection and clears the singleton. `resetDb()` clears the singleton without closing (used in tests to swap to a fresh `:memory:` database).
+- **`validate.ts`**: Validation and parsing functions that throw `ValidationError` on bad input. Includes `parseJsonBody()` for request body parsing, `parseTimeEstimate()` / `formatTimeEstimate()` for human-readable duration strings (e.g. `"1h 30m"`), and validators for names, titles, descriptions, emails, passwords, colours, and dates.
 
 ## Server
 
@@ -129,6 +136,10 @@ Routes are defined as an array of `{ method, pattern, handler, auth }` objects. 
 - Patterns and paths must have the same number of segments
 
 Routes are checked in order — the first match wins. The reorder route (`/api/boards/:id/columns/reorder`) is listed before the generic column update route (`/api/columns/:id`) to avoid conflicts.
+
+### HTML Page Serving
+
+The server uses two routing mechanisms. Bun's built-in `routes` object serves the frontend HTML at `/`, `/login`, `/register`, and `/projects/*`. The custom `matchRoute()` function in the `fetch()` handler handles all `/api/` requests. This means HTML page routes are handled by Bun natively (with HMR support), while API routes go through the custom route-matching logic.
 
 ### Middleware
 
@@ -157,13 +168,19 @@ The CLI uses Node's built-in `util.parseArgs` — no external CLI framework.
 
 ## Frontend
 
-The frontend uses Bun's HTML imports — the server imports `index.html` directly and Bun handles TypeScript transpilation, JSX, CSS bundling (including Tailwind), and HMR.
+The frontend uses Bun's HTML imports — the server imports `index.html` directly and Bun handles TypeScript transpilation, JSX, CSS bundling (including Tailwind via `bun-plugin-tailwind` configured in `bunfig.toml`), and HMR.
 
-**Authentication**: A `Root` component wraps the app, checking for a stored token on mount. Unauthenticated users see login/register pages. On successful auth, the token is stored in `localStorage` and the main `App` renders. On 401, the token is cleared and the user is redirected to `/login`.
+**Authentication**: A `Root` component wraps the app, checking for a stored token on mount. Unauthenticated users see login/register pages (driven by React state, with URL updated via `history.replaceState`). On successful auth, the token is stored in `localStorage` and the main `App` renders. On 401, the token is cleared and the user is redirected to `/login`.
 
 **State management**: React `useState` + `useCallback` in the `App` component. No external state library. The `onUpdate` callback pattern propagates changes up from child components, triggering a board reload.
 
 **API calls**: All API calls go through `lib/api.ts`, which handles bearer token headers and envelope unwrapping. Calls use relative paths (`/api/...`) so they work on any host.
+
+**Client-side routing**: Uses `history.pushState()` and `popstate` events. URL patterns like `/projects/:id/boards/:id` are parsed on mount and on navigation to restore state.
+
+**Theming**: Light/dark mode toggle stored in `localStorage`, with a fallback to `prefers-color-scheme`. The theme is applied by toggling a `.dark` class on `<html>`, which swaps CSS custom property values. A flash-prevention script in the HTML sets the class before React mounts.
+
+**Drag and drop**: Cards can be dragged between columns using HTML5 drag events. Drop indicators show the target position. The `moveCard` API call updates the card's column and position.
 
 ## Testing
 
@@ -179,4 +196,8 @@ Tests use Bun's built-in test runner (`bun:test`).
 - Spawn the CLI as a subprocess pointing at the test server
 - Verify JSON output, exit codes, and end-to-end flows
 
-Both test suites share the server setup/teardown helpers in `test/server/helpers.ts`.
+**Shared utility tests** (`test/shared/validate.test.ts`):
+- Unit tests for `parseTimeEstimate` and `formatTimeEstimate`
+- Cover valid formats, edge cases, and error handling
+
+All test suites share the server setup/teardown helpers in `test/server/helpers.ts`.

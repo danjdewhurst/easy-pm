@@ -164,7 +164,7 @@ bun run cli -- column delete --id 3
 | `move` | `--id`, `--column-id` | `--position` |
 | `labels` | `--id`, `--label-ids` | — |
 
-**`--time-estimate`**: Duration in minutes (e.g. `120` for 2 hours).
+**`--time-estimate`**: Duration as minutes (e.g. `120`) or human-readable string (e.g. `1h 30m`, `2h`, `45m`). Passed directly to the API which parses both formats.
 
 **`--due-date`**: ISO 8601 date string (e.g. `2026-03-15`).
 
@@ -252,6 +252,15 @@ bun run cli -- search "login bug" --project-id 1
 # JSON output for scripting
 bun run cli -- search "deploy" --format json
 ```
+
+---
+
+## Notes
+
+- **Auth commands ignore `--format`**: The `auth register`, `auth login`, and `auth logout` commands print plain text on success regardless of the `--format` flag. Only errors are affected by format.
+- **Unknown flags are silently ignored**: The CLI uses `strict: false` for argument parsing, so unrecognised flags are dropped without warning.
+- **No client-side validation for most commands**: Required flags are not validated locally (except `auth register` and `auth login`). The server returns errors for missing or invalid fields.
+- **Invocation**: The USAGE banner shows `easy-pm <resource> <action>` but the actual invocation is `bun run cli -- <resource> <action>` as there is no global `bin` entry.
 
 ---
 

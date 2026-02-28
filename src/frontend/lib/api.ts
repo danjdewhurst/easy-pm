@@ -1,109 +1,135 @@
 import type {
-  ApiResponse,
-  AuthResponse,
-  PublicUser,
-  Project,
-  Board,
-  BoardView,
-  Column,
-  CardWithLabels,
-  Label,
-  SearchResult,
+	ApiResponse,
+	AuthResponse,
+	Board,
+	BoardView,
+	CardWithLabels,
+	Column,
+	Label,
+	Project,
+	PublicUser,
+	SearchResult,
 } from "../../shared/types.ts";
 
 const TOKEN_KEY = "easy_pm_token";
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+	return localStorage.getItem(TOKEN_KEY);
 }
 
 export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
+	localStorage.setItem(TOKEN_KEY, token);
 }
 
 export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
+	localStorage.removeItem(TOKEN_KEY);
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+async function request<T>(
+	method: string,
+	path: string,
+	body?: unknown,
+): Promise<T> {
+	const headers: Record<string, string> = {
+		"Content-Type": "application/json",
+	};
 
-  const token = getToken();
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
+	const token = getToken();
+	if (token) {
+		headers.Authorization = `Bearer ${token}`;
+	}
 
-  const res = await fetch(path, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+	const res = await fetch(path, {
+		method,
+		headers,
+		body: body ? JSON.stringify(body) : undefined,
+	});
 
-  if (res.status === 401) {
-    clearToken();
-    window.location.href = "/login";
-    throw new Error("Unauthorised");
-  }
+	if (res.status === 401) {
+		clearToken();
+		window.location.href = "/login";
+		throw new Error("Unauthorised");
+	}
 
-  const json = (await res.json()) as ApiResponse<T>;
-  if (!json.ok) {
-    throw new Error(json.error ?? "Request failed");
-  }
-  return json.data as T;
+	const json = (await res.json()) as ApiResponse<T>;
+	if (!json.ok) {
+		throw new Error(json.error ?? "Request failed");
+	}
+	return json.data as T;
 }
 
 // Auth
 export const apiLogin = (email: string, password: string) =>
-  request<AuthResponse>("POST", "/api/auth/login", { email, password });
+	request<AuthResponse>("POST", "/api/auth/login", { email, password });
 export const apiRegister = (email: string, password: string) =>
-  request<AuthResponse>("POST", "/api/auth/register", { email, password });
+	request<AuthResponse>("POST", "/api/auth/register", { email, password });
 export const apiLogout = () => request<unknown>("POST", "/api/auth/logout");
 export const apiGetMe = () => request<PublicUser>("GET", "/api/auth/me");
 
 // Projects
 export const listProjects = () => request<Project[]>("GET", "/api/projects");
 export const createProject = (name: string, description?: string) =>
-  request<Project>("POST", "/api/projects", { name, description });
-export const deleteProject = (id: number) => request<void>("DELETE", `/api/projects/${id}`);
+	request<Project>("POST", "/api/projects", { name, description });
+export const deleteProject = (id: number) =>
+	request<void>("DELETE", `/api/projects/${id}`);
 
 // Boards
-export const listBoards = (projectId: number) => request<Board[]>("GET", `/api/projects/${projectId}/boards`);
+export const listBoards = (projectId: number) =>
+	request<Board[]>("GET", `/api/projects/${projectId}/boards`);
 export const createBoard = (projectId: number, name: string) =>
-  request<Board>("POST", `/api/projects/${projectId}/boards`, { name });
-export const getBoard = (id: number) => request<BoardView>("GET", `/api/boards/${id}`);
-export const deleteBoard = (id: number) => request<void>("DELETE", `/api/boards/${id}`);
+	request<Board>("POST", `/api/projects/${projectId}/boards`, { name });
+export const getBoard = (id: number) =>
+	request<BoardView>("GET", `/api/boards/${id}`);
+export const deleteBoard = (id: number) =>
+	request<void>("DELETE", `/api/boards/${id}`);
 
 // Columns
 export const createColumn = (boardId: number, name: string) =>
-  request<Column>("POST", `/api/boards/${boardId}/columns`, { name });
+	request<Column>("POST", `/api/boards/${boardId}/columns`, { name });
 export const updateColumn = (id: number, data: { name?: string }) =>
-  request<Column>("PUT", `/api/columns/${id}`, data);
-export const deleteColumn = (id: number) => request<void>("DELETE", `/api/columns/${id}`);
+	request<Column>("PUT", `/api/columns/${id}`, data);
+export const deleteColumn = (id: number) =>
+	request<void>("DELETE", `/api/columns/${id}`);
 export const reorderColumns = (boardId: number, columnIds: number[]) =>
-  request<Column[]>("PUT", `/api/boards/${boardId}/columns/reorder`, { column_ids: columnIds });
+	request<Column[]>("PUT", `/api/boards/${boardId}/columns/reorder`, {
+		column_ids: columnIds,
+	});
 
 // Cards
-export const createCard = (columnId: number, title: string, description?: string) =>
-  request<CardWithLabels>("POST", `/api/columns/${columnId}/cards`, { title, description });
+export const createCard = (
+	columnId: number,
+	title: string,
+	description?: string,
+) =>
+	request<CardWithLabels>("POST", `/api/columns/${columnId}/cards`, {
+		title,
+		description,
+	});
 export const updateCard = (id: number, data: Record<string, unknown>) =>
-  request<CardWithLabels>("PUT", `/api/cards/${id}`, data);
-export const deleteCard = (id: number) => request<void>("DELETE", `/api/cards/${id}`);
+	request<CardWithLabels>("PUT", `/api/cards/${id}`, data);
+export const deleteCard = (id: number) =>
+	request<void>("DELETE", `/api/cards/${id}`);
 export const moveCard = (id: number, columnId: number, position?: number) =>
-  request<CardWithLabels>("PUT", `/api/cards/${id}/move`, { column_id: columnId, position });
+	request<CardWithLabels>("PUT", `/api/cards/${id}/move`, {
+		column_id: columnId,
+		position,
+	});
 export const setCardLabels = (id: number, labelIds: number[]) =>
-  request<CardWithLabels>("PUT", `/api/cards/${id}/labels`, { label_ids: labelIds });
+	request<CardWithLabels>("PUT", `/api/cards/${id}/labels`, {
+		label_ids: labelIds,
+	});
 
 // Labels
-export const listLabels = (projectId: number) => request<Label[]>("GET", `/api/projects/${projectId}/labels`);
+export const listLabels = (projectId: number) =>
+	request<Label[]>("GET", `/api/projects/${projectId}/labels`);
 export const createLabel = (projectId: number, name: string, colour: string) =>
-  request<Label>("POST", `/api/projects/${projectId}/labels`, { name, colour });
-export const deleteLabel = (id: number) => request<void>("DELETE", `/api/labels/${id}`);
+	request<Label>("POST", `/api/projects/${projectId}/labels`, { name, colour });
+export const deleteLabel = (id: number) =>
+	request<void>("DELETE", `/api/labels/${id}`);
 
 // Search
 export const search = (query: string, projectId?: number) => {
-  let path = `/api/search?q=${encodeURIComponent(query)}`;
-  if (projectId) path += `&projectId=${projectId}`;
-  return request<SearchResult[]>("GET", path);
+	let path = `/api/search?q=${encodeURIComponent(query)}`;
+	if (projectId) path += `&projectId=${projectId}`;
+	return request<SearchResult[]>("GET", path);
 };

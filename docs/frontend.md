@@ -5,7 +5,7 @@ The frontend is a React single-page application served by the same Bun server at
 ## Stack
 
 - **React 19** with TypeScript
-- **Tailwind CSS 4** (imported via `@import "tailwindcss"`)
+- **Tailwind CSS 4** (via `@reference "tailwindcss"` in CSS, `bun-plugin-tailwind` in `bunfig.toml`)
 - **Bun HTML imports** for bundling (no Vite/Webpack)
 
 ## Entry Point
@@ -36,7 +36,7 @@ Top-level component that handles authentication state. On mount, it checks for a
 | State | Behaviour |
 |-------|-----------|
 | `loading` | Shows a loading indicator while validating the token |
-| `unauthenticated` | Renders `LoginPage` or `RegisterPage` based on the current URL |
+| `unauthenticated` | Renders `LoginPage` or `RegisterPage` based on a `page` state variable (initialised from URL, updated via `setPage()`) |
 | `authenticated` | Renders the main `App` component with user info and logout callback |
 
 On 401 responses, the API client clears the token and redirects to `/login`.
@@ -63,8 +63,9 @@ Main application component. Receives the authenticated user and a logout callbac
 | `boardView` | `BoardView \| null` | Active board with columns, cards, labels |
 | `labels` | `Label[]` | Labels for the selected project |
 | `searchOpen` | `boolean` | Whether the search modal is visible |
+| `theme` | `"light" \| "dark"` | Current colour theme, persisted to `localStorage` |
 
-**Layout**: Two-column layout — sidebar on the left, main content area on the right. Header bar at the top with the board name and search button.
+**Layout**: Two-column layout — sidebar on the left, main content area on the right. Header bar at the top with an accent dot, board name, total card count badge, and search button. When no board is selected, an empty state with an icon and instructional text is shown.
 
 ### Sidebar (`components/Sidebar.tsx`)
 
@@ -75,7 +76,8 @@ Left sidebar with project and board navigation.
 - "+" button to inline-create a new project (press Enter to submit)
 - When a project is selected, shows its boards below
 - "+" button to inline-create a new board
-- Footer shows the current user's email and a "Sign out" button
+- Brand header with "easy-pm" logotype and a theme toggle button (sun/moon icon)
+- Footer shows the selected project name, current user's email, and a "Sign out" button
 
 ### Board (`components/Board.tsx`)
 
@@ -85,6 +87,7 @@ Horizontal kanban board layout.
 - Renders columns side by side in a horizontally scrollable container
 - "Add column" button at the end with an inline form
 - Passes the project's labels down to each column and card
+- Manages drag-and-drop state for moving cards between columns
 
 ### Column (`components/Column.tsx`)
 
@@ -94,7 +97,8 @@ A single board column.
 - Header with column name, card count badge, and delete button
 - Vertically scrollable card list with custom scrollbar styling
 - "Add card" input at the bottom (auto-hides on blur if empty)
-- Delete confirmation dialog
+- Delete confirmation via the browser's native `confirm()` dialog
+- Drop zone for dragged cards with visual drop indicators between cards
 
 ### Card (`components/Card.tsx`)
 
@@ -105,6 +109,7 @@ A card within a column. Clicking opens the detail modal.
 - Card title
 - Metadata row: due date (formatted), time estimate (in hours/minutes), description indicator
 - Hover effect with shadow and border highlight
+- Draggable via HTML5 drag events (reduced opacity when dragging)
 
 ### CardDetail (`components/CardDetail.tsx`)
 
@@ -114,9 +119,9 @@ Modal for viewing and editing a card.
 - Editable title (plain text input)
 - Description textarea
 - Due date picker (`<input type="date">`)
-- Time estimate input (in minutes)
+- Time estimate input (human-readable format, e.g. `1h 30m`, `45m`) with real-time validation
 - Label toggles — click to add/remove, visual opacity indicates selection
-- Save button (updates card and labels in parallel)
+- Save button (updates card then labels sequentially). Disabled when time estimate format is invalid
 - Delete button with confirmation
 - Cancel button / click outside to close
 - Modal overlay with backdrop blur
@@ -157,7 +162,16 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 - Throws on `ok: false`
 - Returns typed `data` directly
 
-**Auth helpers**: `getToken()`, `setToken()`, `clearToken()` manage the `localStorage` token. Additional API functions: `apiLogin()`, `apiRegister()`, `apiLogout()`, `apiGetMe()`.
+**Auth helpers**: `getToken()`, `setToken()`, `clearToken()` manage the `localStorage` token.
+
+**API functions**:
+- Auth: `apiLogin()`, `apiRegister()`, `apiLogout()`, `apiGetMe()`
+- Projects: `listProjects()`, `createProject()`, `deleteProject()`
+- Boards: `listBoards()`, `createBoard()`, `getBoard()`, `deleteBoard()`
+- Columns: `createColumn()`, `updateColumn()`, `deleteColumn()`, `reorderColumns()`
+- Cards: `createCard()`, `updateCard()`, `deleteCard()`, `moveCard()`, `setCardLabels()`
+- Labels: `listLabels()`, `createLabel()`, `deleteLabel()`
+- Search: `search()`
 
 All API calls use relative paths (e.g. `/api/projects`) so they work from the same origin as the frontend.
 
@@ -181,3 +195,5 @@ Custom CSS in `index.css`:
 - Thin custom scrollbars for column card lists
 - Full-height layout (`html, body, #root { height: 100% }`)
 - Plus Jakarta Sans as the body font, Instrument Serif for the brand logotype
+
+**Animations**: CSS keyframe animations (`fadeIn`, `slideUp`, `slideDown`, `scaleIn`) with staggered delays for columns (50ms intervals) and cards (30ms intervals). See [Design System](design-system.md) for full details.

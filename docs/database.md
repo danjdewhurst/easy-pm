@@ -181,6 +181,30 @@ All foreign keys use `ON DELETE CASCADE`. Deleting a project removes everything 
 
 Time estimates are stored as integers in minutes. The frontend formats them for display (e.g. `120` → `2h`, `90` → `1h 30m`). Minutes provide enough granularity without the complexity of duration types.
 
+### Application-Level Constraints
+
+The database schema does not enforce length limits — these are validated at the application layer (in `validate.ts` using constants from `constants.ts`):
+
+| Constant | Value | Applies to |
+|----------|-------|------------|
+| `MAX_NAME_LENGTH` | 255 | Project, board, column, and label names |
+| `MAX_TITLE_LENGTH` | 500 | Card titles |
+| `MAX_DESCRIPTION_LENGTH` | 5000 | Descriptions |
+| `MAX_EMAIL_LENGTH` | 254 | User emails |
+| `MIN_PASSWORD_LENGTH` | 8 | User passwords |
+| `VALID_COLOUR_PATTERN` | `/^#[0-9a-fA-F]{6}$/` | Label colours |
+
+### Schema Evolution
+
+The schema uses `CREATE TABLE IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS`, making it idempotent on first run. There is no migration framework — schema changes require manual database updates or recreation.
+
+### Manual `updated_at`
+
+There are no triggers to auto-update the `updated_at` column. Route handlers set it explicitly via `strftime('%Y-%m-%dT%H:%M:%SZ', 'now')` when modifying a row.
+
 ### Singleton Pattern
 
-The database connection is a module-level singleton (`getDb()`). For testing, `resetDb()` clears the singleton so a fresh `:memory:` database can be used.
+The database connection is a module-level singleton (`getDb()`). Two functions manage its lifecycle:
+
+- **`closeDb()`**: Closes the connection and clears the singleton. Used for graceful shutdown.
+- **`resetDb()`**: Clears the singleton without closing. Used in tests to swap in a fresh `:memory:` database (the old connection is garbage-collected).

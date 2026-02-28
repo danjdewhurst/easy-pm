@@ -1,5 +1,7 @@
 @reference "tailwindcss";
-@variant dark (&:where(.dark, .dark *));
+@variant dark
+(
+&:where(.dark, .dark *));
 
 /* ── Design tokens ── */
 :root {
@@ -195,7 +197,7 @@ body {
 .card-dragging {
   opacity: 0.4;
   transform: scale(0.97);
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
 .drop-indicator {
@@ -207,7 +209,7 @@ body {
 }
 
 .column-drag-over {
-  background: var(--accent-subtle) !important;
+  background: var(--accent-subtle);
 }
 
 /* ── Input styling ── */
