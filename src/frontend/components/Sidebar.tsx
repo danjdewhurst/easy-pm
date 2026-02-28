@@ -5,6 +5,7 @@ interface SidebarProps {
   projects: Project[];
   boards: Board[];
   selectedProject: Project | null;
+  selectedBoardId: number | null;
   onSelectProject: (project: Project) => void;
   onSelectBoard: (board: Board) => void;
   onCreateProject: (name: string) => void;
@@ -15,6 +16,7 @@ export function Sidebar({
   projects,
   boards,
   selectedProject,
+  selectedBoardId,
   onSelectProject,
   onSelectBoard,
   onCreateProject,
@@ -120,7 +122,11 @@ export function Sidebar({
               <button
                 key={board.id}
                 onClick={() => onSelectBoard(board)}
-                className="w-full text-left px-2.5 py-1.5 text-sm rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors"
+                className={`w-full text-left px-2.5 py-1.5 text-sm rounded-md transition-colors ${
+                  selectedBoardId === board.id
+                    ? "bg-indigo-600/20 text-indigo-300"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                }`}
               >
                 {board.name}
               </button>

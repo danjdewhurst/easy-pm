@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import type { CardWithLabels, Label } from "../../shared/types.ts";
-import { formatTimeEstimate } from "../../shared/validate.ts";
+import { formatTimeEstimate, parseTimeEstimate } from "../../shared/validate.ts";
 import * as api from "../lib/api.ts";
 
 interface CardDetailProps {
@@ -19,6 +19,16 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
     new Set(card.labels.map((l) => l.id)),
   );
   const [saving, setSaving] = useState(false);
+
+  const isEstimateValid = (() => {
+    if (!timeEstimate.trim()) return true;
+    try {
+      parseTimeEstimate(timeEstimate);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
 
   const handleSave = async () => {
     setSaving(true);

@@ -74,6 +74,11 @@ function handleRequest(req: Request): Response | Promise<Response> {
     return handler(req, params);
   }
 
+  // Non-API routes: serve the SPA for client-side routing
+  if (!url.pathname.startsWith("/api/")) {
+    return new Response(Bun.file(new URL("../frontend/index.html", import.meta.url)));
+  }
+
   return new Response(JSON.stringify({ ok: false, error: "Not found" }), {
     status: 404,
     headers: { "Content-Type": "application/json" },
