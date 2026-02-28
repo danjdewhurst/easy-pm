@@ -26,6 +26,7 @@ Built with [Bun](https://bun.sh), SQLite, React, and Tailwind CSS.
 - **Dark mode** — system-aware with manual toggle
 - **Zero external services** — SQLite database, no Docker required
 - **Auth built in** — email/password with session tokens
+- **AI/agent-friendly** — first-party CLI designed for agentic workflows; AI tools can create projects, manage cards, and search via structured commands and JSON output
 
 ## Quick Start
 
