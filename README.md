@@ -106,6 +106,10 @@ bun run cli -- card create --column-id 1 --title "Build login page" --time-estim
 # Move a card
 bun run cli -- card move --id 1 --column-id 2
 
+# Labels
+bun run cli -- label create --project-id 1 --name "Bug" --colour red
+bun run cli -- card labels --id 1 --label-ids 1,2
+
 # Search
 bun run cli -- search "login" --format json
 
@@ -138,8 +142,10 @@ The React frontend is served at `/` and provides:
 
 - Sidebar with project and board navigation
 - Kanban board with columns and cards
+- Drag-and-drop card movement between columns
 - Inline creation of projects, boards, columns, and cards
 - Card detail modal (title, description, due date, time estimate, labels)
+- Dark/light theme toggle
 - Full-text search with `Cmd+K` / `Ctrl+K`
 
 ## Documentation
@@ -151,3 +157,4 @@ See the [docs/](docs/) folder for detailed documentation:
 - [Database](docs/database.md) — schema, FTS5 search, and design decisions
 - [Frontend](docs/frontend.md) — components, state management, and keyboard shortcuts
 - [Architecture](docs/architecture.md) — project structure, shared layer, and data flow
+- [Design System](docs/design-system.md) — visual language, colour palette, and theming
