@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.0](https://github.com/danjdewhurst/easy-pm/compare/v1.0.0...v1.1.0) (2026-02-28)
+
+
+### Features
+
+* add label management UI to sidebar and always show labels in card detail ([a5e9a94](https://github.com/danjdewhurst/easy-pm/commit/a5e9a947edc8236f4f73f63b62a4d5c9cd08147b))
+* add migration system and cards.created_by column ([6abf6bb](https://github.com/danjdewhurst/easy-pm/commit/6abf6bbfc38abecbbd6e451bacbcf4fc57a9721c))
+* keep card input open after creation for rapid entry ([963afca](https://github.com/danjdewhurst/easy-pm/commit/963afca2bc5b43762edb1358f0c803e19ea651e8))
+
 ## 1.0.0 (2026-02-28)
 
 
