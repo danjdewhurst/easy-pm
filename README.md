@@ -1,160 +1,119 @@
+<div align="center">
+
 # easy-pm
 
-A simplified project management tool with three first-class interfaces: REST API, CLI, and React frontend. Built with Bun, SQLite, React, and Tailwind CSS.
+**A lightweight project management tool with a Kanban board, REST API, and CLI.**
+
+Built with [Bun](https://bun.sh), SQLite, React, and Tailwind CSS.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+</div>
+
+---
+
+## Features
+
+- **Kanban board** — drag-and-drop cards between columns
+- **Three interfaces** — React frontend, REST API, and CLI
+- **Full-text search** — FTS5-powered search with `Cmd+K` / `Ctrl+K`
+- **Labels & time estimates** — organise and track work
+- **Dark mode** — system-aware with manual toggle
+- **Zero external services** — SQLite database, no Docker required
+- **Auth built in** — email/password with session tokens
 
 ## Quick Start
 
 ```bash
-# Install dependencies
 bun install
-
-# Start the dev server (with HMR)
 bun run dev
-
-# Open in browser
-open http://localhost:3000
+# → http://localhost:3000
 ```
 
-The server exposes both the API (under `/api/`) and the frontend (at `/`).
+That's it. The server serves both the API (`/api/`) and the frontend (`/`).
+
+## CLI
+
+```bash
+bun run cli -- <resource> <action> [options]
+```
+
+```bash
+# Authenticate
+bun run cli -- auth register --email you@example.com --password secret
+bun run cli -- auth login --email you@example.com --password secret
+
+# Create a project → board → columns → card
+bun run cli -- project create --name "My Project"
+bun run cli -- board create --project-id 1 --name "Sprint 1"
+bun run cli -- column create --board-id 1 --name "To Do"
+bun run cli -- card create --column-id 1 --title "Build login page"
+
+# Move, label, search
+bun run cli -- card move --id 1 --column-id 2
+bun run cli -- label create --project-id 1 --name "Bug" --colour red
+bun run cli -- search "login" --format json
+```
+
+Resources: `auth` · `project` · `board` · `column` · `card` · `label` · `search`
+Global flags: `--format json|table` · `--api-url` · `--token`
+
+## API
+
+All responses follow `{ ok, data?, error? }`. Auth required via `Authorization: Bearer <token>`.
+
+| Resource | Endpoints |
+|----------|-----------|
+| Auth | `POST /api/auth/register` · `login` · `logout` · `GET /api/auth/me` |
+| Projects | `GET/POST /api/projects` · `GET/PUT/DELETE /api/projects/:id` |
+| Boards | `GET/POST /api/projects/:id/boards` · `GET/PUT/DELETE /api/boards/:id` |
+| Columns | `POST /api/boards/:id/columns` · `PUT/DELETE /api/columns/:id` · `PUT /api/boards/:id/columns/reorder` |
+| Cards | `GET/POST /api/columns/:id/cards` · `GET/PUT/DELETE /api/cards/:id` · `PUT /api/cards/:id/move` · `PUT /api/cards/:id/labels` |
+| Labels | `GET/POST /api/projects/:id/labels` · `PUT/DELETE /api/labels/:id` |
+| Search | `GET /api/search?q=term&projectId=1` |
+
+`GET /api/boards/:id` returns the full board with nested columns, cards, and labels in one request.
 
 ## Architecture
 
 ```
 src/
-  shared/       # Types, validation, DB schema, error classes
-  server/       # Bun.serve() REST API with route handlers
-  cli/          # Command-line interface (talks to API over HTTP)
-  frontend/     # React + Tailwind single-page app
+  shared/       Types, validation, DB schema, error classes
+  server/       Bun.serve() REST API
+  cli/          CLI (talks to API over HTTP)
+  frontend/     React + Tailwind SPA
 test/
-  server/       # API integration tests
-  cli/          # CLI integration tests
+  server/       API integration tests
+  cli/          CLI integration tests
 ```
 
-**Data model**: Projects contain Boards. Boards contain Columns. Columns contain Cards. Labels belong to a Project and can be assigned to any Card within that project.
+**Data model:** Projects → Boards → Columns → Cards. Labels belong to a Project and can be assigned to any Card within it.
 
-**Database**: SQLite with WAL mode, foreign keys, CASCADE deletes, and FTS5 full-text search on card titles and descriptions.
+**Database:** SQLite with WAL mode, foreign keys, CASCADE deletes, and FTS5 full-text search.
 
 ## Scripts
 
-| Script | Command | Description |
-|--------|---------|-------------|
-| `bun run dev` | `bun --hot src/server/index.ts` | Dev server with hot reload |
-| `bun run start` | `bun src/server/index.ts` | Production server |
-| `bun run cli -- <args>` | `bun src/cli/index.ts` | Run CLI commands |
-| `bun test` | `bun test` | Run all tests |
-| `bun run typecheck` | `bunx tsc --noEmit` | Type-check the codebase |
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | Dev server with hot reload |
+| `bun run start` | Production server |
+| `bun run cli -- <args>` | Run CLI commands |
+| `bun test` | Run tests |
+| `bun run typecheck` | Type-check the codebase |
 
 ## Configuration
-
-Environment variables (Bun loads `.env` automatically):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `3000` | Server port |
 | `EASY_PM_API_URL` | `http://localhost:3000` | CLI: server URL |
 
-## Authentication
-
-The app uses email + password authentication with session tokens. Register an account, then use the returned token for API requests.
-
-**Frontend**: The login/register pages handle auth automatically. Tokens are stored in `localStorage`.
-
-**CLI**:
-
-```bash
-# Register a new account
-bun run cli -- auth register --email you@example.com --password yourpassword
-
-# Log in (token saved to ~/.config/easy-pm/config.json)
-bun run cli -- auth login --email you@example.com --password yourpassword
-
-# All subsequent commands use the stored token
-bun run cli -- project list
-```
-
-**API**: All routes except `/api/health`, `/api/auth/register`, and `/api/auth/login` require a bearer token:
-
-```bash
-curl -H "Authorization: Bearer <token>" http://localhost:3000/api/projects
-```
-
-## CLI Usage
-
-```bash
-bun run cli -- <resource> <action> [options]
-```
-
-**Resources**: `auth`, `project`, `board`, `column`, `card`, `label`, `search`
-
-Examples:
-
-```bash
-# Create a project
-bun run cli -- project create --name "My Project"
-
-# Create a board
-bun run cli -- board create --project-id 1 --name "Sprint 1"
-
-# Add columns
-bun run cli -- column create --board-id 1 --name "To Do"
-bun run cli -- column create --board-id 1 --name "In Progress"
-bun run cli -- column create --board-id 1 --name "Done"
-
-# Add a card
-bun run cli -- card create --column-id 1 --title "Build login page" --time-estimate 120
-
-# Move a card
-bun run cli -- card move --id 1 --column-id 2
-
-# Labels
-bun run cli -- label create --project-id 1 --name "Bug" --colour red
-bun run cli -- card labels --id 1 --label-ids 1,2
-
-# Search
-bun run cli -- search "login" --format json
-
-# JSON output
-bun run cli -- project list --format json
-```
-
-Global flags: `--format json|table`, `--api-url`, `--token`
-
-## API Overview
-
-All responses follow the envelope: `{ ok: boolean, data?: T, error?: string }`
-
-| Resource | Routes |
-|----------|--------|
-| Health | `GET /api/health` |
-| Auth | `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` |
-| Projects | `GET/POST /api/projects`, `GET/PUT/DELETE /api/projects/:id` |
-| Boards | `GET/POST /api/projects/:id/boards`, `GET/PUT/DELETE /api/boards/:id` |
-| Columns | `POST /api/boards/:id/columns`, `PUT/DELETE /api/columns/:id`, `PUT /api/boards/:id/columns/reorder` |
-| Cards | `GET/POST /api/columns/:id/cards`, `GET/PUT/DELETE /api/cards/:id`, `PUT /api/cards/:id/move`, `PUT /api/cards/:id/labels` |
-| Labels | `GET/POST /api/projects/:id/labels`, `PUT/DELETE /api/labels/:id` |
-| Search | `GET /api/search?q=term&projectId=1` |
-
-`GET /api/boards/:id` returns the full board with nested columns, cards, and labels in one request.
-
-## Frontend
-
-The React frontend is served at `/` and provides:
-
-- Sidebar with project and board navigation
-- Kanban board with columns and cards
-- Drag-and-drop card movement between columns
-- Inline creation of projects, boards, columns, and cards
-- Card detail modal (title, description, due date, time estimate, labels)
-- Dark/light theme toggle
-- Full-text search with `Cmd+K` / `Ctrl+K`
-
 ## Documentation
 
-See the [docs/](docs/) folder for detailed documentation:
+See [`docs/`](docs/) for detailed docs:
 
-- [API Reference](docs/api.md) — full route documentation with request/response examples
-- [CLI Reference](docs/cli.md) — all commands, actions, and flags
-- [Database](docs/database.md) — schema, FTS5 search, and design decisions
-- [Frontend](docs/frontend.md) — components, state management, and keyboard shortcuts
-- [Architecture](docs/architecture.md) — project structure, shared layer, and data flow
-- [Design System](docs/design-system.md) — visual language, colour palette, and theming
+[API Reference](docs/api.md) · [CLI Reference](docs/cli.md) · [Database](docs/database.md) · [Frontend](docs/frontend.md) · [Architecture](docs/architecture.md) · [Design System](docs/design-system.md)
+
+## License
+
+[MIT](LICENSE) — Daniel Dewhurst ([@danjdewhurst](https://github.com/danjdewhurst))
