@@ -6,6 +6,7 @@ import {
 	expect,
 	test,
 } from "bun:test";
+import { resolve as pathResolve } from "node:path";
 import {
 	getTestBaseUrl,
 	getTestToken,
@@ -14,19 +15,24 @@ import {
 	teardownTestServer,
 } from "../server/helpers.ts";
 
+const PROJECT_ROOT = pathResolve(import.meta.dir, "../..");
+
 function cli(
 	...args: string[]
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
 	return new Promise((resolve) => {
-		const proc = Bun.spawn(["bun", "run", "src/cli/index.ts", ...args], {
-			cwd: "/Users/dan/Projects/easy-pm",
-			env: {
-				...process.env,
-				EASY_PM_API_URL: getTestBaseUrl(),
+		const proc = Bun.spawn(
+			[process.execPath, "run", "src/cli/index.ts", ...args],
+			{
+				cwd: PROJECT_ROOT,
+				env: {
+					...process.env,
+					EASY_PM_API_URL: getTestBaseUrl(),
+				},
+				stdout: "pipe",
+				stderr: "pipe",
 			},
-			stdout: "pipe",
-			stderr: "pipe",
-		});
+		);
 
 		Promise.all([
 			new Response(proc.stdout).text(),
