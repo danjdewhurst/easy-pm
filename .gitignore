@@ -43,3 +43,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Claude Code worktrees
 .claude/worktrees
+
+# Lefthook local overrides
+lefthook.local.yml
