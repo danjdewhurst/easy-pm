@@ -1,7 +1,12 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { BoardView, Label } from "../../shared/types.ts";
 import { ColumnComponent } from "./Column.tsx";
 import * as api from "../lib/api.ts";
+
+export interface DragState {
+  cardId: number;
+  sourceColumnId: number;
+}
 
 interface BoardProps {
   board: BoardView;
@@ -12,6 +17,7 @@ interface BoardProps {
 export function BoardComponent({ board, labels, onUpdate }: BoardProps) {
   const [newColumnName, setNewColumnName] = useState("");
   const [showNewColumn, setShowNewColumn] = useState(false);
+  const [dragState, setDragState] = useState<DragState | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -28,6 +34,32 @@ export function BoardComponent({ board, labels, onUpdate }: BoardProps) {
     }
   };
 
+  const handleDragStart = useCallback((cardId: number, columnId: number) => {
+    setDragState({ cardId, sourceColumnId: columnId });
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDragState(null);
+  }, []);
+
+  const handleDrop = useCallback(async (targetColumnId: number, position: number) => {
+    if (!dragState) return;
+    const { cardId, sourceColumnId } = dragState;
+    setDragState(null);
+
+    // Skip if dropped in the exact same spot
+    if (targetColumnId === sourceColumnId) {
+      const column = board.columns.find((c) => c.id === sourceColumnId);
+      const currentIndex = column?.cards.findIndex((c) => c.id === cardId) ?? -1;
+      if (currentIndex === position || currentIndex === position - 1) {
+        return;
+      }
+    }
+
+    await api.moveCard(cardId, targetColumnId, position);
+    onUpdate();
+  }, [dragState, board.columns, onUpdate]);
+
   return (
     <div className="flex-1 overflow-x-auto board-scroll p-6">
       <div className="flex gap-5 h-full items-start">
@@ -38,6 +70,10 @@ export function BoardComponent({ board, labels, onUpdate }: BoardProps) {
             labels={labels}
             onUpdate={onUpdate}
             index={i}
+            dragState={dragState}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDrop={handleDrop}
           />
         ))}
 

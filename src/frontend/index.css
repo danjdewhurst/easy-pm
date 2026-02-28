@@ -191,6 +191,25 @@ body {
   opacity: 0.04;
 }
 
+/* ── Drag and drop ── */
+.card-dragging {
+  opacity: 0.4;
+  transform: scale(0.97);
+  box-shadow: none !important;
+}
+
+.drop-indicator {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+}
+
+.column-drag-over {
+  background: var(--accent-subtle) !important;
+}
+
 /* ── Input styling ── */
 input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0.5;

@@ -7,18 +7,32 @@ interface CardProps {
   labels: Label[];
   onUpdate: () => void;
   index: number;
+  columnId: number;
+  isDragging: boolean;
+  onDragStart: (cardId: number, columnId: number) => void;
+  onDragEnd: () => void;
 }
 
-export function CardComponent({ card, labels, onUpdate, index }: CardProps) {
+export function CardComponent({ card, labels, onUpdate, index, columnId, isDragging, onDragStart, onDragEnd }: CardProps) {
   const [showDetail, setShowDetail] = useState(false);
 
   const hasMeta = card.due_date || card.time_estimate || card.description;
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(card.id));
+    onDragStart(card.id, columnId);
+  };
+
   return (
     <>
       <div
-        onClick={() => setShowDetail(true)}
-        className="rounded-lg p-3 border cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md group card-enter"
+        data-card-id={card.id}
+        draggable
+        onDragStart={handleDragStart}
+        onDragEnd={onDragEnd}
+        onClick={() => { if (!isDragging) setShowDetail(true); }}
+        className={`rounded-lg p-3 border cursor-grab transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md group card-enter active:cursor-grabbing ${isDragging ? "card-dragging" : ""}`}
         style={{
           background: 'var(--surface-0)',
           borderColor: 'var(--border-subtle)',

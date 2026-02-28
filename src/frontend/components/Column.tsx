@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import type { ColumnView, Label } from "../../shared/types.ts";
+import type { DragState } from "./Board.tsx";
 import { CardComponent } from "./Card.tsx";
 import * as api from "../lib/api.ts";
 
@@ -8,11 +9,16 @@ interface ColumnProps {
   labels: Label[];
   onUpdate: () => void;
   index: number;
+  dragState: DragState | null;
+  onDragStart: (cardId: number, columnId: number) => void;
+  onDragEnd: () => void;
+  onDrop: (targetColumnId: number, position: number) => void;
 }
 
-export function ColumnComponent({ column, labels, onUpdate, index }: ColumnProps) {
+export function ColumnComponent({ column, labels, onUpdate, index, dragState, onDragStart, onDragEnd, onDrop }: ColumnProps) {
   const [newCardTitle, setNewCardTitle] = useState("");
   const [showNewCard, setShowNewCard] = useState(false);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -36,12 +42,55 @@ export function ColumnComponent({ column, labels, onUpdate, index }: ColumnProps
     }
   };
 
+  const isDragOver = dragState !== null && dropIndex !== null;
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+
+    const cardsContainer = e.currentTarget as HTMLElement;
+    const cardElements = Array.from(cardsContainer.querySelectorAll("[data-card-id]"));
+
+    if (cardElements.length === 0) {
+      setDropIndex(0);
+      return;
+    }
+
+    const mouseY = e.clientY;
+    let closestIndex = cardElements.length;
+
+    for (let i = 0; i < cardElements.length; i++) {
+      const rect = (cardElements[i] as HTMLElement).getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (mouseY < midY) {
+        closestIndex = i;
+        break;
+      }
+    }
+
+    setDropIndex(closestIndex);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only reset if leaving the container entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDropIndex(null);
+    }
+  };
+
+  const handleDropOnColumn = (e: React.DragEvent) => {
+    e.preventDefault();
+    const position = dropIndex ?? column.cards.length;
+    setDropIndex(null);
+    onDrop(column.id, position);
+  };
+
   return (
     <div
-      className="flex-shrink-0 w-72 rounded-xl border flex flex-col max-h-full animate-scale-in"
+      className={`flex-shrink-0 w-72 rounded-xl border flex flex-col max-h-full animate-scale-in transition-colors duration-150 ${isDragOver ? "column-drag-over" : ""}`}
       style={{
         background: 'var(--surface-1)',
-        borderColor: 'var(--border)',
+        borderColor: isDragOver ? 'var(--accent)' : 'var(--border)',
         animationDelay: `${index * 50}ms`,
       }}
     >
@@ -77,16 +126,34 @@ export function ColumnComponent({ column, labels, onUpdate, index }: ColumnProps
       </div>
 
       {/* Cards */}
-      <div className="column-cards flex-1 overflow-y-auto p-2.5 space-y-2">
+      <div
+        className="column-cards flex-1 overflow-y-auto p-2.5"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDropOnColumn}
+      >
         {column.cards.map((card, i) => (
-          <CardComponent
-            key={card.id}
-            card={card}
-            labels={labels}
-            onUpdate={onUpdate}
-            index={i}
-          />
+          <React.Fragment key={card.id}>
+            {dropIndex === i && dragState?.cardId !== card.id && (
+              <div className="drop-indicator" />
+            )}
+            <div className={i > 0 ? "mt-2" : ""}>
+              <CardComponent
+                card={card}
+                labels={labels}
+                onUpdate={onUpdate}
+                index={i}
+                columnId={column.id}
+                isDragging={dragState?.cardId === card.id}
+                onDragStart={onDragStart}
+                onDragEnd={onDragEnd}
+              />
+            </div>
+          </React.Fragment>
         ))}
+        {dropIndex === column.cards.length && (
+          <div className={`drop-indicator ${column.cards.length > 0 ? "mt-2" : ""}`} />
+        )}
       </div>
 
       {/* Add card */}
