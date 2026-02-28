@@ -201,6 +201,26 @@ function App({ user, onLogout }: AppProps) {
 		}
 	};
 
+	const handleCreateLabel = async (name: string, colour: string) => {
+		if (!selectedProject) return;
+		try {
+			await api.createLabel(selectedProject.id, name, colour);
+			await loadLabels(selectedProject.id);
+		} catch (err) {
+			showError(err instanceof Error ? err.message : "Failed to create label");
+		}
+	};
+
+	const handleDeleteLabel = async (id: number) => {
+		if (!selectedProject) return;
+		try {
+			await api.deleteLabel(id);
+			await loadLabels(selectedProject.id);
+		} catch (err) {
+			showError(err instanceof Error ? err.message : "Failed to delete label");
+		}
+	};
+
 	const handleBoardUpdate = () => {
 		if (boardView) loadBoard(boardView.id);
 	};
@@ -224,12 +244,15 @@ function App({ user, onLogout }: AppProps) {
 			<Sidebar
 				projects={projects}
 				boards={boards}
+				labels={labels}
 				selectedProject={selectedProject}
 				selectedBoardId={boardView?.id ?? null}
 				onSelectProject={handleSelectProject}
 				onSelectBoard={handleSelectBoard}
 				onCreateProject={handleCreateProject}
 				onCreateBoard={handleCreateBoard}
+				onCreateLabel={handleCreateLabel}
+				onDeleteLabel={handleDeleteLabel}
 				theme={theme}
 				onToggleTheme={toggleTheme}
 				userEmail={user.email}

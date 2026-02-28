@@ -1,16 +1,30 @@
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
-import type { Board, Project } from "../../shared/types.ts";
+import type { Board, Label, Project } from "../../shared/types.ts";
+
+const LABEL_COLOURS = [
+	"#d20f39",
+	"#fe640b",
+	"#df8e1d",
+	"#40a02b",
+	"#179299",
+	"#1e66f5",
+	"#8839ef",
+	"#ea76cb",
+] as const;
 
 interface SidebarProps {
 	projects: Project[];
 	boards: Board[];
+	labels: Label[];
 	selectedProject: Project | null;
 	selectedBoardId: number | null;
 	onSelectProject: (project: Project) => void;
 	onSelectBoard: (board: Board) => void;
 	onCreateProject: (name: string) => void;
 	onCreateBoard: (name: string) => void;
+	onCreateLabel: (name: string, colour: string) => void;
+	onDeleteLabel: (id: number) => void;
 	theme: "light" | "dark";
 	onToggleTheme: () => void;
 	userEmail?: string;
@@ -20,12 +34,15 @@ interface SidebarProps {
 export function Sidebar({
 	projects,
 	boards,
+	labels,
 	selectedProject,
 	selectedBoardId,
 	onSelectProject,
 	onSelectBoard,
 	onCreateProject,
 	onCreateBoard,
+	onCreateLabel,
+	onDeleteLabel,
 	theme,
 	onToggleTheme,
 	userEmail,
@@ -33,10 +50,16 @@ export function Sidebar({
 }: SidebarProps) {
 	const [newProjectName, setNewProjectName] = useState("");
 	const [newBoardName, setNewBoardName] = useState("");
+	const [newLabelName, setNewLabelName] = useState("");
+	const [newLabelColour, setNewLabelColour] = useState<string>(
+		LABEL_COLOURS[0],
+	);
 	const [showNewProject, setShowNewProject] = useState(false);
 	const [showNewBoard, setShowNewBoard] = useState(false);
+	const [showNewLabel, setShowNewLabel] = useState(false);
 	const projectInputRef = useRef<HTMLInputElement>(null);
 	const boardInputRef = useRef<HTMLInputElement>(null);
+	const labelInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
 		if (showNewProject) projectInputRef.current?.focus();
@@ -45,6 +68,10 @@ export function Sidebar({
 	useEffect(() => {
 		if (showNewBoard) boardInputRef.current?.focus();
 	}, [showNewBoard]);
+
+	useEffect(() => {
+		if (showNewLabel) labelInputRef.current?.focus();
+	}, [showNewLabel]);
 
 	const handleCreateProject = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -61,6 +88,16 @@ export function Sidebar({
 			onCreateBoard(newBoardName.trim());
 			setNewBoardName("");
 			setShowNewBoard(false);
+		}
+	};
+
+	const handleCreateLabel = (e: React.FormEvent) => {
+		e.preventDefault();
+		if (newLabelName.trim()) {
+			onCreateLabel(newLabelName.trim(), newLabelColour);
+			setNewLabelName("");
+			setNewLabelColour(LABEL_COLOURS[0]);
+			setShowNewLabel(false);
 		}
 	};
 
@@ -308,6 +345,106 @@ export function Sidebar({
 									</button>
 								);
 							})}
+						</div>
+					</div>
+				)}
+
+				{/* Labels section */}
+				{selectedProject && (
+					<div className="animate-fade-in">
+						<div className="flex items-center justify-between mb-2 px-2">
+							<span
+								className="text-[10px] font-semibold uppercase tracking-[0.08em]"
+								style={{ color: "var(--text-muted)" }}
+							>
+								Labels
+							</span>
+							<button
+								onClick={() => setShowNewLabel(!showNewLabel)}
+								className="w-5 h-5 flex items-center justify-center rounded transition-all duration-150 text-xs hover:scale-110"
+								style={{ color: "var(--text-muted)" }}
+							>
+								<svg
+									className="w-3.5 h-3.5"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+									strokeWidth={2}
+								>
+									<path strokeLinecap="round" d="M12 5v14m-7-7h14" />
+								</svg>
+							</button>
+						</div>
+
+						{showNewLabel && (
+							<form
+								onSubmit={handleCreateLabel}
+								className="mb-2 animate-slide-down space-y-2"
+							>
+								<input
+									ref={labelInputRef}
+									type="text"
+									value={newLabelName}
+									onChange={(e) => setNewLabelName(e.target.value)}
+									placeholder="Label name"
+									onKeyDown={(e) => {
+										if (e.key === "Escape") setShowNewLabel(false);
+									}}
+									onBlur={() => {
+										if (!newLabelName.trim()) setShowNewLabel(false);
+									}}
+									className="w-full px-2.5 py-1.5 text-sm rounded-md border transition-colors duration-150"
+									style={{
+										background: "var(--surface-2)",
+										borderColor: "var(--accent)",
+										color: "var(--text-primary)",
+									}}
+								/>
+								<div className="flex gap-1 px-0.5">
+									{LABEL_COLOURS.map((colour) => (
+										<button
+											key={colour}
+											type="button"
+											onClick={() => setNewLabelColour(colour)}
+											className="w-5 h-5 rounded-full transition-all duration-150 flex-shrink-0"
+											style={{
+												background: colour,
+												outline:
+													newLabelColour === colour
+														? `2px solid ${colour}`
+														: "none",
+												outlineOffset: "2px",
+												transform:
+													newLabelColour === colour ? "scale(1.1)" : "scale(1)",
+											}}
+										/>
+									))}
+								</div>
+							</form>
+						)}
+
+						<div className="space-y-0.5">
+							{labels.map((label) => (
+								<div
+									key={label.id}
+									className="flex items-center gap-2 px-2.5 py-1.5 text-[13px] rounded-md group"
+									style={{ color: "var(--text-secondary)" }}
+								>
+									<span
+										className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+										style={{ background: label.colour }}
+									/>
+									<span className="truncate flex-1">{label.name}</span>
+									<button
+										onClick={() => onDeleteLabel(label.id)}
+										className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center rounded transition-all duration-150 text-xs flex-shrink-0"
+										style={{ color: "var(--text-muted)" }}
+										title={`Delete label "${label.name}"`}
+									>
+										×
+									</button>
+								</div>
+							))}
 						</div>
 					</div>
 				)}

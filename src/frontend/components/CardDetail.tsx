@@ -219,14 +219,14 @@ export function CardDetail({
 					</div>
 
 					{/* Labels */}
-					{allLabels.length > 0 && (
-						<div>
-							<label
-								className="text-[11px] font-semibold uppercase tracking-wider mb-2 block"
-								style={{ color: "var(--text-muted)" }}
-							>
-								Labels
-							</label>
+					<div>
+						<label
+							className="text-[11px] font-semibold uppercase tracking-wider mb-2 block"
+							style={{ color: "var(--text-muted)" }}
+						>
+							Labels
+						</label>
+						{allLabels.length > 0 ? (
 							<div className="flex flex-wrap gap-2">
 								{allLabels.map((label) => {
 									const selected = selectedLabelIds.has(label.id);
@@ -249,8 +249,12 @@ export function CardDetail({
 									);
 								})}
 							</div>
-						</div>
-					)}
+						) : (
+							<p className="text-xs" style={{ color: "var(--text-muted)" }}>
+								No labels yet — create them in the sidebar
+							</p>
+						)}
+					</div>
 				</div>
 
 				{/* Actions */}
