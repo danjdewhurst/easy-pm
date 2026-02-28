@@ -9,6 +9,7 @@ import {
   validateIsoDate,
   validateIntArray,
   parseJsonBody,
+  parseTimeEstimate,
 } from "../../shared/validate.ts";
 import { jsonResponse } from "../middleware.ts";
 
@@ -60,7 +61,7 @@ export async function createCard(req: Request, params: Record<string, string>): 
   const title = validateTitle(body.title);
   const description = validateDescription(body.description) ?? null;
   const due_date = validateIsoDate(body.due_date, "due_date") ?? null;
-  const time_estimate = validatePositiveInt(body.time_estimate, "time_estimate") ?? null;
+  const time_estimate = parseTimeEstimate(body.time_estimate);
 
   let position = validatePositiveInt(body.position, "position");
   if (position === undefined) {
@@ -95,7 +96,7 @@ export async function updateCard(req: Request, params: Record<string, string>): 
   if (body.position !== undefined) updates.position = validatePositiveInt(body.position, "position");
   if (body.due_date !== undefined) updates.due_date = validateIsoDate(body.due_date, "due_date") ?? null;
   if (body.time_estimate !== undefined)
-    updates.time_estimate = validatePositiveInt(body.time_estimate, "time_estimate") ?? null;
+    updates.time_estimate = parseTimeEstimate(body.time_estimate);
 
   if (Object.keys(updates).length === 0) return jsonResponse(getCardWithLabels(Number(params.id)));
 

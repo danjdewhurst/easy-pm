@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import type { CardWithLabels, Label } from "../../shared/types.ts";
+import { formatTimeEstimate } from "../../shared/validate.ts";
 import * as api from "../lib/api.ts";
 
 interface CardDetailProps {
@@ -13,7 +14,7 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description ?? "");
   const [dueDate, setDueDate] = useState(card.due_date?.split("T")[0] ?? "");
-  const [timeEstimate, setTimeEstimate] = useState(card.time_estimate?.toString() ?? "");
+  const [timeEstimate, setTimeEstimate] = useState(formatTimeEstimate(card.time_estimate));
   const [selectedLabelIds, setSelectedLabelIds] = useState<Set<number>>(
     new Set(card.labels.map((l) => l.id)),
   );
@@ -26,7 +27,7 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
         title,
         description: description || null,
         due_date: dueDate ? new Date(dueDate).toISOString() : null,
-        time_estimate: timeEstimate ? Number(timeEstimate) : null,
+        time_estimate: timeEstimate ? timeEstimate : null,
       });
       await api.setCardLabels(card.id, Array.from(selectedLabelIds));
       onUpdate();
@@ -93,12 +94,12 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
               />
             </div>
             <div className="flex-1">
-              <label className="text-xs text-slate-500 mb-1 block">Estimate (minutes)</label>
+              <label className="text-xs text-slate-500 mb-1 block">Estimate (e.g. 30m, 1h 30m)</label>
               <input
-                type="number"
+                type="text"
                 value={timeEstimate}
                 onChange={(e) => setTimeEstimate(e.target.value)}
-                min="0"
+                placeholder="e.g. 1h 30m"
                 className="w-full px-3 py-1.5 text-sm bg-slate-900/50 border border-slate-700 rounded-lg text-slate-300 focus:outline-none focus:border-indigo-500"
               />
             </div>

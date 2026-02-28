@@ -104,6 +104,47 @@ export function validateIsoDate(value: unknown, field: string): string | null | 
   return d.toISOString();
 }
 
+/**
+ * Parse a time estimate string like "5m", "1h", "1h 20m", or plain minutes "90"
+ * into total minutes. Returns null for empty/null/undefined input.
+ */
+export function parseTimeEstimate(value: unknown): number | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "number") return value >= 0 ? Math.round(value) : null;
+  if (typeof value !== "string") return null;
+
+  const trimmed = value.trim();
+  if (trimmed === "") return null;
+
+  // Plain number — treat as minutes
+  if (/^\d+$/.test(trimmed)) {
+    return parseInt(trimmed, 10);
+  }
+
+  const pattern = /^(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?$/i;
+  const match = trimmed.match(pattern);
+  if (!match || (!match[1] && !match[2])) {
+    throw new ValidationError(
+      "time_estimate must be a number of minutes or a string like '1h 30m', '2h', or '45m'",
+    );
+  }
+
+  const hours = match[1] ? parseInt(match[1], 10) : 0;
+  const minutes = match[2] ? parseInt(match[2], 10) : 0;
+  return hours * 60 + minutes;
+}
+
+/**
+ * Format minutes into a human-readable string like "1h 20m" or "45m".
+ */
+export function formatTimeEstimate(minutes: number | null | undefined): string {
+  if (minutes === null || minutes === undefined) return "";
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
 export async function parseJsonBody(req: Request): Promise<Record<string, unknown>> {
   try {
     const body = await req.json();

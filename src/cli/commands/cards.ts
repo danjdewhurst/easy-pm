@@ -19,7 +19,7 @@ export async function cardCommand(
       const body: Record<string, unknown> = { title: args.title };
       if (args.description) body.description = args.description;
       if (args["due-date"]) body.due_date = args["due-date"];
-      if (args["time-estimate"]) body.time_estimate = Number(args["time-estimate"]);
+      if (args["time-estimate"]) body.time_estimate = args["time-estimate"];
       if (args.position) body.position = Number(args.position);
       const res = await client.post<CardWithLabels>(`/api/columns/${args["column-id"]}/cards`, body);
       printResult(res, format);
@@ -35,7 +35,7 @@ export async function cardCommand(
       if (args.title) body.title = args.title;
       if (args.description !== undefined) body.description = args.description;
       if (args["due-date"] !== undefined) body.due_date = args["due-date"] || null;
-      if (args["time-estimate"]) body.time_estimate = Number(args["time-estimate"]);
+      if (args["time-estimate"]) body.time_estimate = args["time-estimate"];
       if (args.position) body.position = Number(args.position);
       const res = await client.put<CardWithLabels>(`/api/cards/${args.id}`, body);
       printResult(res, format);
