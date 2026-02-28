@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import type { BoardView, Label } from "../../shared/types.ts";
 import { ColumnComponent } from "./Column.tsx";
 import * as api from "../lib/api.ts";
@@ -12,6 +12,11 @@ interface BoardProps {
 export function BoardComponent({ board, labels, onUpdate }: BoardProps) {
   const [newColumnName, setNewColumnName] = useState("");
   const [showNewColumn, setShowNewColumn] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (showNewColumn) inputRef.current?.focus();
+  }, [showNewColumn]);
 
   const handleCreateColumn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,40 +29,53 @@ export function BoardComponent({ board, labels, onUpdate }: BoardProps) {
   };
 
   return (
-    <div className="flex-1 overflow-x-auto p-6">
-      <div className="flex gap-4 h-full items-start">
-        {board.columns.map((column) => (
+    <div className="flex-1 overflow-x-auto board-scroll p-6">
+      <div className="flex gap-5 h-full items-start">
+        {board.columns.map((column, i) => (
           <ColumnComponent
             key={column.id}
             column={column}
             labels={labels}
             onUpdate={onUpdate}
+            index={i}
           />
         ))}
 
         {/* Add column */}
         <div className="flex-shrink-0 w-72">
           {showNewColumn ? (
-            <form onSubmit={handleCreateColumn} className="bg-white dark:bg-slate-800/50 rounded-xl p-3 border border-slate-200 dark:border-slate-700/50">
+            <form
+              onSubmit={handleCreateColumn}
+              className="rounded-xl p-3 border animate-scale-in"
+              style={{ background: 'var(--surface-1)', borderColor: 'var(--border)' }}
+            >
               <input
+                ref={inputRef}
                 type="text"
                 value={newColumnName}
                 onChange={(e) => setNewColumnName(e.target.value)}
                 placeholder="Column name"
-                autoFocus
-                className="w-full px-3 py-2 text-sm bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                onKeyDown={(e) => { if (e.key === "Escape") setShowNewColumn(false); }}
+                className="w-full px-3 py-2 text-sm rounded-lg border transition-colors duration-150"
+                style={{
+                  background: 'var(--surface-2)',
+                  borderColor: 'var(--border)',
+                  color: 'var(--text-primary)',
+                }}
               />
-              <div className="flex gap-2 mt-2">
+              <div className="flex gap-2 mt-2.5">
                 <button
                   type="submit"
-                  className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors"
+                  className="px-3.5 py-1.5 text-sm font-medium text-white rounded-lg transition-all duration-150 btn-press"
+                  style={{ background: 'var(--accent)' }}
                 >
-                  Add
+                  Add column
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowNewColumn(false)}
-                  className="px-3 py-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                  className="px-3 py-1.5 text-sm transition-colors duration-150"
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   Cancel
                 </button>
@@ -66,9 +84,18 @@ export function BoardComponent({ board, labels, onUpdate }: BoardProps) {
           ) : (
             <button
               onClick={() => setShowNewColumn(true)}
-              className="w-full px-4 py-3 text-sm text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-300 dark:border-slate-700/50 hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-500 dark:hover:text-slate-400 transition-colors"
+              className="w-full px-4 py-3.5 text-sm rounded-xl border border-dashed transition-all duration-200 hover:border-solid group btn-press"
+              style={{
+                color: 'var(--text-muted)',
+                borderColor: 'var(--border)',
+              }}
             >
-              + Add column
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" d="M12 5v14m-7-7h14" />
+                </svg>
+                Add column
+              </span>
             </button>
           )}
         </div>

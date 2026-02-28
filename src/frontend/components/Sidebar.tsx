@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import type { Project, Board } from "../../shared/types.ts";
 
 interface SidebarProps {
@@ -30,6 +30,16 @@ export function Sidebar({
   const [newBoardName, setNewBoardName] = useState("");
   const [showNewProject, setShowNewProject] = useState(false);
   const [showNewBoard, setShowNewBoard] = useState(false);
+  const projectInputRef = useRef<HTMLInputElement>(null);
+  const boardInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (showNewProject) projectInputRef.current?.focus();
+  }, [showNewProject]);
+
+  useEffect(() => {
+    if (showNewBoard) boardInputRef.current?.focus();
+  }, [showNewBoard]);
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,12 +60,22 @@ export function Sidebar({
   };
 
   return (
-    <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700/50 flex flex-col h-full">
-      <div className="p-4 border-b border-slate-200 dark:border-slate-700/50 flex items-center justify-between">
-        <h2 className="text-sm font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">easy-pm</h2>
+    <aside
+      className="w-60 flex flex-col h-full border-r relative surface-texture"
+      style={{ background: 'var(--surface-1)', borderColor: 'var(--border)' }}
+    >
+      {/* Brand */}
+      <div
+        className="px-5 py-4 border-b flex items-center justify-between"
+        style={{ borderColor: 'var(--border)' }}
+      >
+        <h2 className="font-brand text-xl tracking-tight" style={{ color: 'var(--accent)' }}>
+          easy-pm
+        </h2>
         <button
           onClick={onToggleTheme}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="p-1.5 rounded-lg transition-all duration-150 hover:scale-105 btn-press"
+          style={{ color: 'var(--text-muted)' }}
           title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
         >
           {theme === "dark" ? (
@@ -70,88 +90,149 @@ export function Sidebar({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {/* Projects */}
+      {/* Navigation */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        {/* Projects section */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Projects</span>
+          <div className="flex items-center justify-between mb-2 px-2">
+            <span
+              className="text-[10px] font-semibold uppercase tracking-[0.08em]"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Projects
+            </span>
             <button
               onClick={() => setShowNewProject(!showNewProject)}
-              className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 text-lg leading-none"
+              className="w-5 h-5 flex items-center justify-center rounded transition-all duration-150 text-xs hover:scale-110"
+              style={{ color: 'var(--text-muted)' }}
             >
-              +
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" d="M12 5v14m-7-7h14" />
+              </svg>
             </button>
           </div>
 
           {showNewProject && (
-            <form onSubmit={handleCreateProject} className="mb-2">
+            <form onSubmit={handleCreateProject} className="mb-2 animate-slide-down">
               <input
+                ref={projectInputRef}
                 type="text"
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
                 placeholder="Project name"
-                autoFocus
-                className="w-full px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                onKeyDown={(e) => { if (e.key === "Escape") setShowNewProject(false); }}
+                onBlur={() => { if (!newProjectName.trim()) setShowNewProject(false); }}
+                className="w-full px-2.5 py-1.5 text-sm rounded-md border transition-colors duration-150"
+                style={{
+                  background: 'var(--surface-2)',
+                  borderColor: 'var(--accent)',
+                  color: 'var(--text-primary)',
+                }}
               />
             </form>
           )}
 
-          {projects.map((project) => (
-            <button
-              key={project.id}
-              onClick={() => onSelectProject(project)}
-              className={`w-full text-left px-2.5 py-1.5 text-sm rounded-md transition-colors ${
-                selectedProject?.id === project.id
-                  ? "bg-indigo-600/20 text-indigo-600 dark:text-indigo-300"
-                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200"
-              }`}
-            >
-              {project.name}
-            </button>
-          ))}
+          <div className="space-y-0.5">
+            {projects.map((project) => {
+              const isSelected = selectedProject?.id === project.id;
+              return (
+                <button
+                  key={project.id}
+                  onClick={() => onSelectProject(project)}
+                  className="w-full text-left px-2.5 py-1.5 text-[13px] rounded-md transition-all duration-150 flex items-center gap-2 group"
+                  style={{
+                    background: isSelected ? 'var(--accent-subtle)' : 'transparent',
+                    color: isSelected ? 'var(--accent)' : 'var(--text-secondary)',
+                    fontWeight: isSelected ? 600 : 400,
+                  }}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full transition-all duration-200 flex-shrink-0"
+                    style={{
+                      background: isSelected ? 'var(--accent)' : 'var(--border)',
+                      transform: isSelected ? 'scale(1)' : 'scale(0.8)',
+                    }}
+                  />
+                  <span className="truncate">{project.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Boards (shown when a project is selected) */}
+        {/* Boards section */}
         {selectedProject && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Boards</span>
+          <div className="animate-fade-in">
+            <div className="flex items-center justify-between mb-2 px-2">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.08em]"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Boards
+              </span>
               <button
                 onClick={() => setShowNewBoard(!showNewBoard)}
-                className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 text-lg leading-none"
+                className="w-5 h-5 flex items-center justify-center rounded transition-all duration-150 text-xs hover:scale-110"
+                style={{ color: 'var(--text-muted)' }}
               >
-                +
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" d="M12 5v14m-7-7h14" />
+                </svg>
               </button>
             </div>
 
             {showNewBoard && (
-              <form onSubmit={handleCreateBoard} className="mb-2">
+              <form onSubmit={handleCreateBoard} className="mb-2 animate-slide-down">
                 <input
+                  ref={boardInputRef}
                   type="text"
                   value={newBoardName}
                   onChange={(e) => setNewBoardName(e.target.value)}
                   placeholder="Board name"
-                  autoFocus
-                  className="w-full px-2 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  onKeyDown={(e) => { if (e.key === "Escape") setShowNewBoard(false); }}
+                  onBlur={() => { if (!newBoardName.trim()) setShowNewBoard(false); }}
+                  className="w-full px-2.5 py-1.5 text-sm rounded-md border transition-colors duration-150"
+                  style={{
+                    background: 'var(--surface-2)',
+                    borderColor: 'var(--accent)',
+                    color: 'var(--text-primary)',
+                  }}
                 />
               </form>
             )}
 
-            {boards.map((board) => (
-              <button
-                key={board.id}
-                onClick={() => onSelectBoard(board)}
-                className={`w-full text-left px-2.5 py-1.5 text-sm rounded-md transition-colors ${
-                  selectedBoardId === board.id
-                    ? "bg-indigo-600/20 text-indigo-600 dark:text-indigo-300"
-                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200"
-                }`}
-              >
-                {board.name}
-              </button>
-            ))}
+            <div className="space-y-0.5">
+              {boards.map((board) => {
+                const isSelected = selectedBoardId === board.id;
+                return (
+                  <button
+                    key={board.id}
+                    onClick={() => onSelectBoard(board)}
+                    className="w-full text-left px-2.5 py-1.5 text-[13px] rounded-md transition-all duration-150 flex items-center gap-2 group"
+                    style={{
+                      background: isSelected ? 'var(--accent-subtle)' : 'transparent',
+                      color: isSelected ? 'var(--accent)' : 'var(--text-secondary)',
+                      fontWeight: isSelected ? 600 : 400,
+                    }}
+                  >
+                    <svg className="w-3.5 h-3.5 flex-shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span className="truncate">{board.name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
+      </div>
+
+      {/* Footer */}
+      <div
+        className="px-5 py-3 border-t text-[10px]"
+        style={{ borderColor: 'var(--border)', color: 'var(--text-faint)' }}
+      >
+        {selectedProject ? selectedProject.name : "No project selected"}
       </div>
     </aside>
   );

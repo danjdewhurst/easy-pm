@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { CardWithLabels, Label } from "../../shared/types.ts";
 import { formatTimeEstimate, parseTimeEstimate } from "../../shared/validate.ts";
 import * as api from "../lib/api.ts";
@@ -19,6 +19,21 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
     new Set(card.labels.map((l) => l.id)),
   );
   const [saving, setSaving] = useState(false);
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    titleRef.current?.focus();
+    titleRef.current?.select();
+  }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
 
   const isEstimateValid = (() => {
     if (!timeEstimate.trim()) return true;
@@ -67,57 +82,98 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
     });
   };
 
+  const inputStyle = {
+    background: 'var(--surface-2)',
+    borderColor: 'var(--border)',
+    color: 'var(--text-primary)',
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50 overlay-enter"
+      style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
       <div
-        className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg mx-4 shadow-2xl"
+        className="rounded-2xl border w-full max-w-lg mx-4 shadow-2xl animate-slide-up overflow-hidden"
+        style={{ background: 'var(--surface-1)', borderColor: 'var(--border)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6 space-y-4">
+        {/* Accent bar */}
+        <div className="h-1" style={{ background: 'var(--accent)' }} />
+
+        <div className="p-6 space-y-5">
           {/* Title */}
           <input
+            ref={titleRef}
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full text-lg font-semibold bg-transparent text-slate-800 dark:text-slate-100 border-none outline-none focus:ring-0 placeholder-slate-400 dark:placeholder-slate-500"
+            className="w-full text-lg font-semibold bg-transparent border-none outline-none tracking-tight"
+            style={{ color: 'var(--text-primary)' }}
             placeholder="Card title"
           />
 
           {/* Description */}
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Add a description..."
-            rows={4}
-            className="w-full px-3 py-2 text-sm bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
-          />
+          <div>
+            <label
+              className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 block"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add a description..."
+              rows={4}
+              className="w-full px-3 py-2.5 text-sm border rounded-lg resize-none transition-colors duration-150 focus:outline-none"
+              style={{
+                ...inputStyle,
+                borderColor: description ? 'var(--border)' : 'var(--border-subtle)',
+              }}
+            />
+          </div>
 
           {/* Due date + Time estimate */}
           <div className="flex gap-4">
             <div className="flex-1">
-              <label className="text-xs text-slate-500 mb-1 block">Due date</label>
+              <label
+                className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 block"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Due date
+              </label>
               <input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 text-sm border rounded-lg transition-colors duration-150 focus:outline-none"
+                style={inputStyle}
               />
             </div>
             <div className="flex-1">
-              <label className="text-xs text-slate-500 mb-1 block">Estimate (e.g. 30m, 1h 30m)</label>
+              <label
+                className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 block"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Estimate
+              </label>
               <input
                 type="text"
                 value={timeEstimate}
                 onChange={(e) => setTimeEstimate(e.target.value)}
                 placeholder="e.g. 1h 30m"
-                className={`w-full px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-900/50 border rounded-lg text-slate-700 dark:text-slate-300 focus:outline-none ${
-                  isEstimateValid
-                    ? "border-slate-200 dark:border-slate-700 focus:border-indigo-500"
-                    : "border-red-500/60 focus:border-red-500"
-                }`}
+                className="w-full px-3 py-2 text-sm border rounded-lg transition-colors duration-150 focus:outline-none"
+                style={{
+                  ...inputStyle,
+                  borderColor: isEstimateValid ? 'var(--border)' : '#ef4444',
+                }}
               />
               {!isEstimateValid && (
-                <p className="text-[11px] text-red-400 mt-1">Use format like 30m, 1h, or 1h 30m</p>
+                <p className="text-[11px] mt-1" style={{ color: '#ef4444' }}>
+                  Use format like 30m, 1h, or 1h 30m
+                </p>
               )}
             </div>
           </div>
@@ -125,48 +181,62 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
           {/* Labels */}
           {allLabels.length > 0 && (
             <div>
-              <label className="text-xs text-slate-500 mb-2 block">Labels</label>
+              <label
+                className="text-[11px] font-semibold uppercase tracking-wider mb-2 block"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Labels
+              </label>
               <div className="flex flex-wrap gap-2">
-                {allLabels.map((label) => (
-                  <button
-                    key={label.id}
-                    onClick={() => toggleLabel(label.id)}
-                    className={`text-xs font-medium px-2.5 py-1 rounded-lg border transition-all ${
-                      selectedLabelIds.has(label.id)
-                        ? "border-current opacity-100"
-                        : "border-transparent opacity-50 hover:opacity-75"
-                    }`}
-                    style={{ backgroundColor: label.colour + "25", color: label.colour }}
-                  >
-                    {label.name}
-                  </button>
-                ))}
+                {allLabels.map((label) => {
+                  const selected = selectedLabelIds.has(label.id);
+                  return (
+                    <button
+                      key={label.id}
+                      onClick={() => toggleLabel(label.id)}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg border-2 transition-all duration-150 btn-press"
+                      style={{
+                        backgroundColor: selected ? label.colour + "20" : 'transparent',
+                        borderColor: selected ? label.colour : 'var(--border)',
+                        color: selected ? label.colour : 'var(--text-muted)',
+                      }}
+                    >
+                      {label.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700/50">
+        <div
+          className="flex items-center justify-between px-6 py-4 border-t"
+          style={{ borderColor: 'var(--border-subtle)' }}
+        >
           <button
             onClick={handleDelete}
-            className="text-sm text-red-400 hover:text-red-300 transition-colors"
+            className="text-sm font-medium transition-all duration-150 hover:underline underline-offset-2 btn-press"
+            style={{ color: '#ef4444' }}
           >
-            Delete
+            Delete card
           </button>
-          <div className="flex gap-2">
+          <div className="flex gap-2.5">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+              className="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150 btn-press"
+              style={{ color: 'var(--text-secondary)' }}
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={saving || !isEstimateValid}
-              className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+              className="px-5 py-2 text-sm font-semibold text-white rounded-lg transition-all duration-150 disabled:opacity-40 btn-press"
+              style={{ background: saving ? 'var(--text-muted)' : 'var(--accent)' }}
             >
-              {saving ? "Saving..." : "Save"}
+              {saving ? "Saving..." : "Save changes"}
             </button>
           </div>
         </div>

@@ -44,14 +44,26 @@ export function SearchBar({ projectId, onClose }: SearchBarProps) {
   }, [query, projectId]);
 
   return (
-    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[15vh] z-50" onClick={onClose}>
+    <div
+      className="fixed inset-0 flex items-start justify-center pt-[18vh] z-50 overlay-enter"
+      style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
       <div
-        className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 w-full max-w-xl mx-4 shadow-2xl overflow-hidden"
+        className="rounded-2xl border w-full max-w-xl mx-4 shadow-2xl overflow-hidden animate-scale-in"
+        style={{ background: 'var(--surface-1)', borderColor: 'var(--border)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-700/50">
-          <svg className="w-5 h-5 text-slate-400 dark:text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div
+          className="flex items-center gap-3 px-4 py-3.5 border-b"
+          style={{ borderColor: 'var(--border-subtle)' }}
+        >
+          <svg
+            className="w-4.5 h-4.5 flex-shrink-0"
+            style={{ color: 'var(--accent)' }}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -60,32 +72,57 @@ export function SearchBar({ projectId, onClose }: SearchBarProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search cards..."
-            className="flex-1 bg-transparent text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 text-sm outline-none"
+            className="flex-1 bg-transparent text-sm outline-none"
+            style={{ color: 'var(--text-primary)' }}
           />
           {loading && (
-            <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+            <div
+              className="w-4 h-4 border-2 rounded-full animate-spin"
+              style={{ borderColor: 'var(--accent-muted)', borderTopColor: 'var(--accent)' }}
+            />
           )}
+          <kbd
+            className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+            style={{ background: 'var(--surface-2)', color: 'var(--text-faint)' }}
+          >
+            esc
+          </kbd>
         </div>
 
         {/* Results */}
         {results.length > 0 && (
           <div className="max-h-80 overflow-y-auto p-2">
-            {results.map((result) => (
+            {results.map((result, i) => (
               <div
                 key={result.card.id}
-                className="px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
+                className="px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150 card-enter"
+                style={{
+                  animationDelay: `${i * 30}ms`,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--surface-2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
               >
-                <p className="text-sm text-slate-800 dark:text-slate-200">{result.card.title}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                  {result.project_name} &rarr; {result.board_name} &rarr; {result.column_name}
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                  {result.card.title}
+                </p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  {result.project_name}
+                  <span className="mx-1.5 opacity-40">/</span>
+                  {result.board_name}
+                  <span className="mx-1.5 opacity-40">/</span>
+                  {result.column_name}
                 </p>
                 {result.card.labels.length > 0 && (
                   <div className="flex gap-1 mt-1.5">
                     {result.card.labels.map((label) => (
                       <span
                         key={label.id}
-                        className="text-[10px] px-1.5 py-0.5 rounded"
-                        style={{ backgroundColor: label.colour + "30", color: label.colour }}
+                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md"
+                        style={{ backgroundColor: label.colour + "20", color: label.colour }}
                       >
                         {label.name}
                       </span>
@@ -97,9 +134,21 @@ export function SearchBar({ projectId, onClose }: SearchBarProps) {
           </div>
         )}
 
+        {/* Empty state */}
         {query.trim() && !loading && results.length === 0 && (
-          <div className="px-4 py-6 text-center text-sm text-slate-400 dark:text-slate-500">
-            No results found
+          <div className="px-4 py-8 text-center animate-fade-in">
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              No results for "<span style={{ color: 'var(--text-secondary)' }}>{query}</span>"
+            </p>
+          </div>
+        )}
+
+        {/* Hint when empty */}
+        {!query.trim() && (
+          <div className="px-4 py-6 text-center">
+            <p className="text-xs" style={{ color: 'var(--text-faint)' }}>
+              Type to search across all cards
+            </p>
           </div>
         )}
       </div>

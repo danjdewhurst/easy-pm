@@ -70,7 +70,6 @@ function App() {
     setLabels(data);
   }, []);
 
-  // Restore state from URL on initial load
   useEffect(() => {
     (async () => {
       const allProjects = await loadProjects();
@@ -92,7 +91,6 @@ function App() {
     }
   }, [selectedProject, loadBoards, loadLabels]);
 
-  // Handle browser back/forward
   useEffect(() => {
     const onPopState = () => {
       const { projectId, boardId } = parseRoute();
@@ -144,7 +142,6 @@ function App() {
     if (boardView) loadBoard(boardView.id);
   };
 
-  // Keyboard shortcut for search
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -173,19 +170,57 @@ function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
       />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex items-center justify-between px-6 py-3 border-b border-slate-200 dark:border-slate-700/50 bg-white/80 dark:bg-slate-900/50 backdrop-blur">
-          <h1 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-            {boardView?.name ?? "Select a board"}
-          </h1>
+      <main className="flex-1 flex flex-col overflow-hidden" style={{ background: 'var(--surface-0)' }}>
+        {/* Header */}
+        <header
+          className="flex items-center justify-between px-8 py-4 border-b"
+          style={{ borderColor: 'var(--border)', background: 'var(--surface-1)' }}
+        >
+          <div className="flex items-center gap-3">
+            {boardView && (
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{ background: 'var(--accent)' }}
+              />
+            )}
+            <h1
+              className="text-base font-semibold tracking-tight"
+              style={{ color: boardView ? 'var(--text-primary)' : 'var(--text-muted)' }}
+            >
+              {boardView?.name ?? "Select a board"}
+            </h1>
+            {boardView && (
+              <span
+                className="text-xs font-medium px-2 py-0.5 rounded-full"
+                style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}
+              >
+                {boardView.columns.reduce((sum, col) => sum + col.cards.length, 0)} cards
+              </span>
+            )}
+          </div>
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
+            className="flex items-center gap-2.5 px-3.5 py-2 text-sm rounded-lg border transition-all duration-150 hover:border-[var(--accent)] hover:shadow-sm btn-press"
+            style={{
+              color: 'var(--text-secondary)',
+              background: 'var(--surface-2)',
+              borderColor: 'var(--border)',
+            }}
           >
+            <svg className="w-3.5 h-3.5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
             <span>Search</span>
-            <kbd className="text-xs px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-slate-500">⌘K</kbd>
+            <kbd
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded ml-1"
+              style={{ background: 'var(--surface-3)', color: 'var(--text-muted)' }}
+            >
+              &#8984;K
+            </kbd>
           </button>
         </header>
+
+        {/* Board or empty state */}
         {boardView ? (
           <BoardComponent
             board={boardView}
@@ -193,8 +228,23 @@ function App() {
             onUpdate={handleBoardUpdate}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-400 dark:text-slate-500">
-            <p>Select a project and board to get started</p>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center animate-fade-in">
+              <div
+                className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
+                style={{ background: 'var(--accent-subtle)' }}
+              >
+                <svg className="w-7 h-7" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                Select a project and board to get started
+              </p>
+              <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                Choose from the sidebar or create something new
+              </p>
+            </div>
           </div>
         )}
       </main>
