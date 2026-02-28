@@ -42,6 +42,7 @@ src/
     index.ts               # Bun.serve() entry point, route wiring
     middleware.ts           # Auth, error handling, route matching
     routes/
+      auth.ts              # Register, login, logout, me
       health.ts            # Health check
       projects.ts          # Project CRUD
       boards.ts            # Board CRUD + full board view
@@ -52,8 +53,10 @@ src/
   cli/
     index.ts               # parseArgs dispatcher
     client.ts              # HTTP client wrapper
+    config.ts              # Token storage (~/.config/easy-pm/config.json)
     output.ts              # JSON/table formatters
     commands/
+      auth.ts              # auth register|login|logout|whoami
       projects.ts          # project list|create|get|update|delete
       boards.ts            # board list|create|get|update|delete
       columns.ts           # column create|update|delete|reorder
@@ -67,7 +70,9 @@ src/
     lib/
       api.ts               # Fetch wrapper with auth
     components/
-      Sidebar.tsx           # Project/board navigation
+      LoginPage.tsx         # Login form
+      RegisterPage.tsx      # Registration form
+      Sidebar.tsx           # Project/board navigation + user/logout
       Board.tsx             # Kanban board layout
       Column.tsx            # Single column with cards
       Card.tsx              # Card preview
@@ -76,9 +81,9 @@ src/
 test/
   server/
     helpers.ts             # Test server setup/teardown, API helpers
-    api.test.ts            # 24 API integration tests
+    api.test.ts            # API integration tests (auth, CRUD, search)
   cli/
-    cli.test.ts            # 5 CLI integration tests
+    cli.test.ts            # CLI integration tests
 ```
 
 ## Data Model
@@ -127,7 +132,7 @@ Routes are checked in order — the first match wins. The reorder route (`/api/b
 
 ### Middleware
 
-- **`withAuth`**: Wraps a handler to check the `X-API-Key` header. Applied to all routes except health.
+- **`withAuth`**: Wraps a handler to check the `Authorization: Bearer` token against the `sessions` table (with expiry check). Applied to all routes except health and unauthenticated auth routes (register, login).
 - **`jsonResponse`**: Wraps data in the `{ ok: true, data }` envelope.
 - **`errorResponse`**: Catches `AppError` subclasses and returns the appropriate status code. Unhandled errors become 500s.
 
@@ -154,9 +159,11 @@ The CLI uses Node's built-in `util.parseArgs` — no external CLI framework.
 
 The frontend uses Bun's HTML imports — the server imports `index.html` directly and Bun handles TypeScript transpilation, JSX, CSS bundling (including Tailwind), and HMR.
 
-**State management**: React `useState` + `useCallback` in the root `App` component. No external state library. The `onUpdate` callback pattern propagates changes up from child components, triggering a board reload.
+**Authentication**: A `Root` component wraps the app, checking for a stored token on mount. Unauthenticated users see login/register pages. On successful auth, the token is stored in `localStorage` and the main `App` renders. On 401, the token is cleared and the user is redirected to `/login`.
 
-**API calls**: All API calls go through `lib/api.ts`, which handles auth headers and envelope unwrapping. Calls use relative paths (`/api/...`) so they work on any host.
+**State management**: React `useState` + `useCallback` in the `App` component. No external state library. The `onUpdate` callback pattern propagates changes up from child components, triggering a board reload.
+
+**API calls**: All API calls go through `lib/api.ts`, which handles bearer token headers and envelope unwrapping. Calls use relative paths (`/api/...`) so they work on any host.
 
 ## Testing
 

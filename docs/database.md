@@ -16,6 +16,9 @@ The database is initialised as a singleton via `getDb()` in `src/shared/db.ts`. 
 ### Entity-Relationship Diagram
 
 ```
+users
+  └── sessions
+
 projects
   ├── boards
   │     └── columns
@@ -26,6 +29,27 @@ projects
 All relationships use `ON DELETE CASCADE` — deleting a parent removes all children.
 
 ### Tables
+
+#### users
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT |
+| `email` | TEXT | NOT NULL, UNIQUE |
+| `password_hash` | TEXT | NOT NULL (argon2id via `Bun.password.hash()`) |
+| `created_at` | TEXT | NOT NULL, ISO 8601 default |
+
+#### sessions
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT |
+| `user_id` | INTEGER | NOT NULL, FK → users(id) CASCADE |
+| `token` | TEXT | NOT NULL, UNIQUE |
+| `expires_at` | TEXT | NOT NULL, ISO 8601 |
+| `created_at` | TEXT | NOT NULL, ISO 8601 default |
+
+Indexed: `idx_sessions_token` on `token` for fast session lookups.
 
 #### projects
 

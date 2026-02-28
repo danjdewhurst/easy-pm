@@ -50,16 +50,32 @@ Environment variables (Bun loads `.env` automatically):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `EASY_PM_API_KEY` | `dev-api-key` | API key for authentication |
 | `PORT` | `3000` | Server port |
 | `EASY_PM_API_URL` | `http://localhost:3000` | CLI: server URL |
 
 ## Authentication
 
-All API routes (except `/api/health`) require the `X-API-Key` header:
+The app uses email + password authentication with session tokens. Register an account, then use the returned token for API requests.
+
+**Frontend**: The login/register pages handle auth automatically. Tokens are stored in `localStorage`.
+
+**CLI**:
 
 ```bash
-curl -H "X-API-Key: dev-api-key" http://localhost:3000/api/projects
+# Register a new account
+bun run cli -- auth register --email you@example.com --password yourpassword
+
+# Log in (token saved to ~/.config/easy-pm/config.json)
+bun run cli -- auth login --email you@example.com --password yourpassword
+
+# All subsequent commands use the stored token
+bun run cli -- project list
+```
+
+**API**: All routes except `/api/health`, `/api/auth/register`, and `/api/auth/login` require a bearer token:
+
+```bash
+curl -H "Authorization: Bearer <token>" http://localhost:3000/api/projects
 ```
 
 ## CLI Usage
@@ -68,7 +84,7 @@ curl -H "X-API-Key: dev-api-key" http://localhost:3000/api/projects
 bun run cli -- <resource> <action> [options]
 ```
 
-**Resources**: `project`, `board`, `column`, `card`, `label`, `search`
+**Resources**: `auth`, `project`, `board`, `column`, `card`, `label`, `search`
 
 Examples:
 
@@ -97,7 +113,7 @@ bun run cli -- search "login" --format json
 bun run cli -- project list --format json
 ```
 
-Global flags: `--format json|table`, `--api-url`, `--api-key`
+Global flags: `--format json|table`, `--api-url`, `--token`
 
 ## API Overview
 
@@ -106,6 +122,7 @@ All responses follow the envelope: `{ ok: boolean, data?: T, error?: string }`
 | Resource | Routes |
 |----------|--------|
 | Health | `GET /api/health` |
+| Auth | `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` |
 | Projects | `GET/POST /api/projects`, `GET/PUT/DELETE /api/projects/:id` |
 | Boards | `GET/POST /api/projects/:id/boards`, `GET/PUT/DELETE /api/boards/:id` |
 | Columns | `POST /api/boards/:id/columns`, `PUT/DELETE /api/columns/:id`, `PUT /api/boards/:id/columns/reorder` |

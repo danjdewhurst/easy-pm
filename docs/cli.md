@@ -14,8 +14,12 @@ bun run cli -- <resource> <action> [options]
 |------|---------|--------------|-------------|
 | `--format` | `table` | — | Output format: `json` or `table` |
 | `--api-url` | `http://localhost:3000` | `EASY_PM_API_URL` | Server URL |
-| `--api-key` | `dev-api-key` | `EASY_PM_API_KEY` | API key |
+| `--token` | from config file | — | Auth token (overrides stored token) |
 | `--help`, `-h` | — | — | Show usage information |
+
+## Token Storage
+
+The CLI stores your auth token in `~/.config/easy-pm/config.json` after a successful `auth register` or `auth login`. Subsequent commands use this stored token automatically. You can override it with `--token`.
 
 ## Output Formats
 
@@ -28,6 +32,33 @@ Errors are always written to stderr with exit code 1.
 ---
 
 ## Resources
+
+### auth
+
+| Action | Required Flags | Optional Flags |
+|--------|---------------|----------------|
+| `register` | `--email`, `--password` | — |
+| `login` | `--email`, `--password` | — |
+| `logout` | — | — |
+| `whoami` | — | — |
+
+**Examples**:
+
+```bash
+# Register a new account (token saved automatically)
+bun run cli -- auth register --email user@example.com --password mypassword
+
+# Log in (token saved automatically)
+bun run cli -- auth login --email user@example.com --password mypassword
+
+# Check current user
+bun run cli -- auth whoami
+
+# Log out (removes stored token)
+bun run cli -- auth logout
+```
+
+---
 
 ### project
 

@@ -27,9 +27,31 @@ Bun.serve({
 
 ## Components
 
+### Root (`app.tsx`)
+
+Top-level component that handles authentication state. On mount, it checks for a stored token in `localStorage` and validates it via `GET /api/auth/me`.
+
+**Auth states**:
+
+| State | Behaviour |
+|-------|-----------|
+| `loading` | Shows a loading indicator while validating the token |
+| `unauthenticated` | Renders `LoginPage` or `RegisterPage` based on the current URL |
+| `authenticated` | Renders the main `App` component with user info and logout callback |
+
+On 401 responses, the API client clears the token and redirects to `/login`.
+
+### LoginPage (`components/LoginPage.tsx`)
+
+Email + password form. On success, stores the token and transitions to the authenticated state. Links to the register page.
+
+### RegisterPage (`components/RegisterPage.tsx`)
+
+Email + password + confirm password form. Client-side check that passwords match before submitting. On success, stores the token and transitions to the authenticated state. Links to the login page.
+
 ### App (`app.tsx`)
 
-Root component. Manages global state and renders the layout.
+Main application component. Receives the authenticated user and a logout callback as props. Manages global state and renders the layout.
 
 **State**:
 
@@ -53,7 +75,7 @@ Left sidebar with project and board navigation.
 - "+" button to inline-create a new project (press Enter to submit)
 - When a project is selected, shows its boards below
 - "+" button to inline-create a new board
-- Styled with a dark slate theme, indigo accent for selection
+- Footer shows the current user's email and a "Sign out" button
 
 ### Board (`components/Board.tsx`)
 
@@ -129,24 +151,33 @@ Thin wrapper around `fetch()` that handles authentication and the response envel
 async function request<T>(method: string, path: string, body?: unknown): Promise<T>
 ```
 
-- Adds `X-API-Key` header automatically
+- Reads the auth token from `localStorage` and adds `Authorization: Bearer` header
+- On 401 responses: clears the stored token and redirects to `/login`
 - Parses the `{ ok, data, error }` envelope
 - Throws on `ok: false`
 - Returns typed `data` directly
 
+**Auth helpers**: `getToken()`, `setToken()`, `clearToken()` manage the `localStorage` token. Additional API functions: `apiLogin()`, `apiRegister()`, `apiLogout()`, `apiGetMe()`.
+
 All API calls use relative paths (e.g. `/api/projects`) so they work from the same origin as the frontend.
+
+## Routing
+
+The server serves the SPA HTML at `/`, `/login`, `/register`, and `/projects/*`. Client-side routing uses `history.pushState()` and `popstate` events.
+
+| Path | View |
+|------|------|
+| `/login` | Login page |
+| `/register` | Registration page |
+| `/` | App root (project/board selection) |
+| `/projects/:id` | Project selected |
+| `/projects/:id/boards/:id` | Board selected |
 
 ## Styling
 
-The app uses a dark theme built with Tailwind:
-
-- **Background**: `slate-900` / `slate-800`
-- **Text**: `slate-200` / `slate-300` / `slate-400`
-- **Accent**: `indigo-600` / `indigo-500`
-- **Danger**: `red-400`
-- **Borders**: `slate-700` at various opacities
+The app uses CSS custom properties for theming with light and dark modes. See [Design System](design-system.md) for full details.
 
 Custom CSS in `index.css`:
 - Thin custom scrollbars for column card lists
 - Full-height layout (`html, body, #root { height: 100% }`)
-- System font stack as the base font
+- Plus Jakarta Sans as the body font, Instrument Serif for the brand logotype

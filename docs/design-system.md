@@ -153,6 +153,15 @@ The app uses a consistent spacing scale based on Tailwind's defaults:
 - Search modal positioned at 18vh from top
 - Both close on Escape and click-outside
 
+### Auth Pages (LoginPage, RegisterPage)
+
+- Centred card layout: `max-w-sm`, `rounded-2xl`, `--surface-1` background
+- Brand logotype at the top in `--accent` colour
+- Error messages in a tinted `#ef4444` banner
+- Primary submit button spans full width
+- Navigation link between login/register at the bottom
+- Entrance animation: `animate-scale-in`
+
 ### Buttons
 
 | Variant | Style |

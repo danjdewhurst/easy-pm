@@ -4,19 +4,21 @@ Base URL: `http://localhost:3000/api`
 
 ## Authentication
 
-All routes except `/api/health` require the `X-API-Key` header.
+The API uses bearer token authentication. Register or log in to obtain a session token, then include it in the `Authorization` header:
 
 ```
-X-API-Key: dev-api-key
+Authorization: Bearer <token>
 ```
 
-The key is configured via the `EASY_PM_API_KEY` environment variable (default: `dev-api-key`).
+Routes that do **not** require authentication: `/api/health`, `/api/auth/register`, `/api/auth/login`.
 
-Unauthenticated requests receive:
+All other routes return 401 without a valid token:
 
 ```json
 { "ok": false, "error": "Unauthorised" }
 ```
+
+Tokens are 64-character hex strings with a 30-day expiry. Passwords are hashed with argon2id via `Bun.password.hash()`.
 
 ## Response Envelope
 
@@ -45,7 +47,7 @@ On error:
 | 200 | Success |
 | 201 | Created |
 | 400 | Validation error |
-| 401 | Unauthorised (missing or wrong API key) |
+| 401 | Unauthorised (missing or invalid token, wrong credentials) |
 | 404 | Resource not found |
 | 500 | Internal server error |
 
@@ -65,6 +67,88 @@ No authentication required.
   "data": {
     "status": "ok",
     "timestamp": "2026-02-28T12:00:00.000Z"
+  }
+}
+```
+
+---
+
+## Auth
+
+### `POST /api/auth/register`
+
+Create a new user account and return a session token. No authentication required.
+
+**Request body**:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "securepassword"
+}
+```
+
+| Field | Type | Required | Constraints |
+|-------|------|----------|-------------|
+| `email` | string | Yes | Valid email, max 254 characters, must be unique |
+| `password` | string | Yes | At least 8 characters |
+
+**Response (201)**:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "token": "a1b2c3...64-char-hex",
+    "user": {
+      "id": 1,
+      "email": "user@example.com",
+      "created_at": "2026-02-28T12:00:00Z"
+    }
+  }
+}
+```
+
+### `POST /api/auth/login`
+
+Authenticate with email and password. No authentication required.
+
+**Request body**:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "securepassword"
+}
+```
+
+**Response (200)**: Same shape as register — `{ token, user }`.
+
+Returns 401 if the email doesn't exist or the password is wrong.
+
+### `POST /api/auth/logout`
+
+Invalidate the current session token. Requires authentication.
+
+**Response (200)**:
+
+```json
+{ "ok": true, "data": { "message": "Logged out" } }
+```
+
+### `GET /api/auth/me`
+
+Return the currently authenticated user. Requires authentication.
+
+**Response (200)**:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "id": 1,
+    "email": "user@example.com",
+    "created_at": "2026-02-28T12:00:00Z"
   }
 }
 ```
