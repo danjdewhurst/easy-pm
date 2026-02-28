@@ -30,13 +30,15 @@ easy-pm is a project management tool with three interfaces that share a common f
 ## Project Structure
 
 ```
+migrations/                  # Numbered SQL migration files (001_initial.sql, etc.)
 src/
   shared/                  # Code shared across server, CLI, and frontend
     types.ts               # All TypeScript interfaces
     constants.ts           # Limits, defaults, patterns
     errors.ts              # AppError, NotFoundError, ValidationError, AuthError
-    schema.ts              # SQL DDL (tables, FTS5, triggers)
-    db.ts                  # SQLite singleton
+    schema.ts              # SQL DDL (tables, FTS5, triggers) — canonical current state
+    db.ts                  # SQLite singleton (routes to SCHEMA or migrations)
+    migrate.ts             # Migration runner (reads migrations/*.sql)
     validate.ts            # Input validation helpers
   server/
     index.ts               # Bun.serve() entry point, route wiring
@@ -109,7 +111,7 @@ Project
 - **Projects** are top-level containers
 - **Boards** belong to exactly one project
 - **Columns** belong to exactly one board and are ordered by `position`
-- **Cards** belong to exactly one column and are ordered by `position`. Cards also have optional `due_date` and `time_estimate` (in minutes) fields
+- **Cards** belong to exactly one column and are ordered by `position`. Cards track their `created_by` user and have optional `due_date` and `time_estimate` (in minutes) fields
 - **Labels** belong to a project and can be assigned to any card within that project via the `card_labels` join table
 
 All parent-child relationships use `ON DELETE CASCADE`.
@@ -121,8 +123,9 @@ The `src/shared/` directory contains code used by multiple parts of the applicat
 - **`types.ts`**: TypeScript interfaces for all entities, request/response shapes, and the API envelope. Imported by server routes, CLI commands, and frontend components.
 - **`constants.ts`**: Validation limits (`MAX_NAME_LENGTH`, `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH`), `POSITION_GAP` (1000), `VALID_COLOUR_PATTERN`, and auth-related constants (`DEFAULT_PORT`, `SESSION_EXPIRY_DAYS`, `MIN_PASSWORD_LENGTH`, `MAX_EMAIL_LENGTH`).
 - **`errors.ts`**: Error class hierarchy. `AppError` is the base; `NotFoundError` (404), `ValidationError` (400), and `AuthError` (401) extend it. The server middleware catches these and returns appropriate HTTP responses.
-- **`schema.ts`**: The full SQL DDL as a string, including all tables (`projects`, `boards`, `columns`, `cards`, `labels`, `card_labels`, `users`, `sessions`), the FTS5 virtual table, and sync triggers. Applied once when the database is first opened.
-- **`db.ts`**: Module-scoped singleton pattern. `getDb()` returns (or creates) the connection, enabling WAL journal mode and foreign keys on creation. `closeDb()` closes the connection and clears the singleton. `resetDb()` clears the singleton without closing (used in tests to swap to a fresh `:memory:` database).
+- **`schema.ts`**: The full SQL DDL as a string, representing the canonical current schema. Used directly by `:memory:` test databases. File-backed databases use the migration runner instead.
+- **`db.ts`**: Module-scoped singleton pattern. `getDb()` returns (or creates) the connection, enabling WAL journal mode and foreign keys on creation. For `:memory:` paths it applies `SCHEMA` directly; for file paths it calls `runMigrations()`. `closeDb()` closes the connection and clears the singleton. `resetDb()` clears the singleton without closing (used in tests to swap to a fresh `:memory:` database).
+- **`migrate.ts`**: Lightweight migration runner. Reads numbered SQL files from `migrations/`, tracks applied migrations in a `schema_migrations` table, and runs new ones in individual transactions.
 - **`validate.ts`**: Validation and parsing functions that throw `ValidationError` on bad input. Includes `parseJsonBody()` for request body parsing, `parseTimeEstimate()` / `formatTimeEstimate()` for human-readable duration strings (e.g. `"1h 30m"`), and validators for names, titles, descriptions, emails, passwords, colours, and dates.
 
 ## Server

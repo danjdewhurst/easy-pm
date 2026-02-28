@@ -52,6 +52,7 @@ User → Projects → Boards → Columns → Cards ↔ Labels (join table). Labe
 - **Errors:** Domain-specific hierarchy (`AppError`, `NotFoundError`, `ValidationError`, `ForbiddenError`) — throw in handlers, caught by middleware
 - **Validation:** Centralised in `src/shared/validate.ts` — all input validated before DB access
 - **API responses:** Envelope format `{ ok: boolean, data?: T, error?: string }`
+- **Migrations:** Numbered SQL files in `migrations/`, tracked by `schema_migrations` table. Runs on DB init for file-backed databases; `:memory:` test DBs use `SCHEMA` directly. Add new migrations as `migrations/NNN_description.sql`
 - **DB queries:** Direct parameterised SQLite, batch queries to avoid N+1
 - **Frontend routing:** History API with manual route matching in `App.tsx`
 - **Colour system:** CSS custom properties (`--surface-0` through `--surface-3`, `--text-primary`, `--accent`, etc.) with light/dark mode

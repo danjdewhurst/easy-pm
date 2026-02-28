@@ -9,7 +9,7 @@ easy-pm uses SQLite as its database, accessed via Bun's built-in `bun:sqlite` mo
 - **Foreign keys**: Enabled (`PRAGMA foreign_keys = ON`)
 - **Tests**: Use `:memory:` databases for isolation
 
-The database is initialised as a singleton via `getDb()` in `src/shared/db.ts`. The schema is applied automatically on first connection.
+The database is initialised as a singleton via `getDb()` in `src/shared/db.ts`. For file-backed databases, schema changes are applied incrementally via the migration runner. For `:memory:` databases (tests), the full schema string is applied directly.
 
 ## Schema
 
@@ -89,6 +89,7 @@ Indexed: `idx_sessions_token` on `token` for fast session lookups.
 |--------|------|-------------|
 | `id` | INTEGER | PRIMARY KEY AUTOINCREMENT |
 | `column_id` | INTEGER | NOT NULL, FK → columns(id) CASCADE |
+| `created_by` | INTEGER | NOT NULL, FK → users(id) |
 | `title` | TEXT | NOT NULL |
 | `description` | TEXT | Nullable |
 | `position` | INTEGER | NOT NULL, DEFAULT 0 |
@@ -194,9 +195,31 @@ The database schema does not enforce length limits — these are validated at th
 | `MIN_PASSWORD_LENGTH` | 8 | User passwords |
 | `VALID_COLOUR_PATTERN` | `/^#[0-9a-fA-F]{6}$/` | Label colours |
 
-### Schema Evolution
+### Migrations
 
-The schema uses `CREATE TABLE IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS`, making it idempotent on first run. There is no migration framework — schema changes require manual database updates or recreation.
+Schema changes are managed by a lightweight migration runner (`src/shared/migrate.ts`). Migrations are numbered SQL files in the `migrations/` directory:
+
+```
+migrations/
+  001_initial.sql              # Baseline schema (all tables, indexes, FTS5, triggers)
+  002_cards_created_by.sql     # Add created_by column to cards
+```
+
+**How it works:**
+
+1. On startup, `getDb()` calls `runMigrations(db)` for file-backed databases
+2. The runner creates a `schema_migrations` table if it doesn't exist
+3. It reads all `*.sql` files from `migrations/`, sorted by name
+4. Already-applied migrations (recorded in `schema_migrations`) are skipped
+5. Each new migration runs in its own transaction — if it fails, it's not recorded as applied
+
+**Adding a new migration:**
+
+1. Create `migrations/NNN_description.sql` with the next number
+2. Write forward-only SQL (no down migrations)
+3. Update `SCHEMA` in `src/shared/schema.ts` to reflect the new canonical state (used by tests)
+
+**Test databases** (`:memory:`) skip the migration runner entirely — they apply the `SCHEMA` string directly, which always represents the current full schema. This avoids file I/O and keeps tests fast.
 
 ### Manual `updated_at`
 
