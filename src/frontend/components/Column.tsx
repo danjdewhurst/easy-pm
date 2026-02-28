@@ -36,16 +36,21 @@ export function ColumnComponent({
 		if (showNewCard) inputRef.current?.focus();
 	}, [showNewCard]);
 
+	const isCreating = useRef(false);
+
 	const handleCreateCard = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (newCardTitle.trim()) {
+			isCreating.current = true;
 			try {
 				await api.createCard(column.id, newCardTitle.trim());
 				setNewCardTitle("");
-				setShowNewCard(false);
 				onUpdate();
+				inputRef.current?.focus();
 			} catch (err) {
 				onError(err instanceof Error ? err.message : "Failed to create card");
+			} finally {
+				isCreating.current = false;
 			}
 		}
 	};
@@ -204,7 +209,8 @@ export function ColumnComponent({
 								if (e.key === "Escape") setShowNewCard(false);
 							}}
 							onBlur={() => {
-								if (!newCardTitle.trim()) setShowNewCard(false);
+								if (!newCardTitle.trim() && !isCreating.current)
+									setShowNewCard(false);
 							}}
 							className="w-full px-3 py-2 text-sm rounded-lg border transition-colors duration-150"
 							style={{
