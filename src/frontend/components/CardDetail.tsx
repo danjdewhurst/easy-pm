@@ -68,9 +68,9 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
       <div
-        className="bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-lg mx-4 shadow-2xl"
+        className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg mx-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 space-y-4">
@@ -79,7 +79,7 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full text-lg font-semibold bg-transparent text-slate-100 border-none outline-none focus:ring-0 placeholder-slate-500"
+            className="w-full text-lg font-semibold bg-transparent text-slate-800 dark:text-slate-100 border-none outline-none focus:ring-0 placeholder-slate-400 dark:placeholder-slate-500"
             placeholder="Card title"
           />
 
@@ -89,7 +89,7 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add a description..."
             rows={4}
-            className="w-full px-3 py-2 text-sm bg-slate-900/50 border border-slate-700 rounded-lg text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
+            className="w-full px-3 py-2 text-sm bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
           />
 
           {/* Due date + Time estimate */}
@@ -100,7 +100,7 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-1.5 text-sm bg-slate-900/50 border border-slate-700 rounded-lg text-slate-300 focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div className="flex-1">
@@ -110,9 +110,9 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
                 value={timeEstimate}
                 onChange={(e) => setTimeEstimate(e.target.value)}
                 placeholder="e.g. 1h 30m"
-                className={`w-full px-3 py-1.5 text-sm bg-slate-900/50 border rounded-lg text-slate-300 focus:outline-none ${
+                className={`w-full px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-900/50 border rounded-lg text-slate-700 dark:text-slate-300 focus:outline-none ${
                   isEstimateValid
-                    ? "border-slate-700 focus:border-indigo-500"
+                    ? "border-slate-200 dark:border-slate-700 focus:border-indigo-500"
                     : "border-red-500/60 focus:border-red-500"
                 }`}
               />
@@ -147,7 +147,7 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700/50">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700/50">
           <button
             onClick={handleDelete}
             className="text-sm text-red-400 hover:text-red-300 transition-colors"
@@ -157,7 +157,7 @@ export function CardDetail({ card, allLabels, onClose, onUpdate }: CardDetailPro
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+              className="px-4 py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
             >
               Cancel
             </button>

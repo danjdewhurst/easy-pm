@@ -44,14 +44,14 @@ export function SearchBar({ projectId, onClose }: SearchBarProps) {
   }, [query, projectId]);
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[15vh] z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[15vh] z-50" onClick={onClose}>
       <div
-        className="bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-xl mx-4 shadow-2xl overflow-hidden"
+        className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 w-full max-w-xl mx-4 shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-700/50">
-          <svg className="w-5 h-5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-700/50">
+          <svg className="w-5 h-5 text-slate-400 dark:text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -60,7 +60,7 @@ export function SearchBar({ projectId, onClose }: SearchBarProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search cards..."
-            className="flex-1 bg-transparent text-slate-200 placeholder-slate-500 text-sm outline-none"
+            className="flex-1 bg-transparent text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 text-sm outline-none"
           />
           {loading && (
             <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
@@ -73,10 +73,10 @@ export function SearchBar({ projectId, onClose }: SearchBarProps) {
             {results.map((result) => (
               <div
                 key={result.card.id}
-                className="px-3 py-2.5 rounded-lg hover:bg-slate-700/50 cursor-pointer transition-colors"
+                className="px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
               >
-                <p className="text-sm text-slate-200">{result.card.title}</p>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-sm text-slate-800 dark:text-slate-200">{result.card.title}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                   {result.project_name} &rarr; {result.board_name} &rarr; {result.column_name}
                 </p>
                 {result.card.labels.length > 0 && (
@@ -98,7 +98,7 @@ export function SearchBar({ projectId, onClose }: SearchBarProps) {
         )}
 
         {query.trim() && !loading && results.length === 0 && (
-          <div className="px-4 py-6 text-center text-sm text-slate-500">
+          <div className="px-4 py-6 text-center text-sm text-slate-400 dark:text-slate-500">
             No results found
           </div>
         )}

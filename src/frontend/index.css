@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@reference "tailwindcss";
 @variant dark (&:where(.dark, .dark *));
 
 html, body, #root {

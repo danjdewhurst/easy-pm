@@ -38,14 +38,14 @@ export function BoardComponent({ board, labels, onUpdate }: BoardProps) {
         {/* Add column */}
         <div className="flex-shrink-0 w-72">
           {showNewColumn ? (
-            <form onSubmit={handleCreateColumn} className="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50">
+            <form onSubmit={handleCreateColumn} className="bg-white dark:bg-slate-800/50 rounded-xl p-3 border border-slate-200 dark:border-slate-700/50">
               <input
                 type="text"
                 value={newColumnName}
                 onChange={(e) => setNewColumnName(e.target.value)}
                 placeholder="Column name"
                 autoFocus
-                className="w-full px-3 py-2 text-sm bg-slate-900 border border-slate-600 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 text-sm bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500"
               />
               <div className="flex gap-2 mt-2">
                 <button
@@ -57,7 +57,7 @@ export function BoardComponent({ board, labels, onUpdate }: BoardProps) {
                 <button
                   type="button"
                   onClick={() => setShowNewColumn(false)}
-                  className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+                  className="px-3 py-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
                 >
                   Cancel
                 </button>
@@ -66,7 +66,7 @@ export function BoardComponent({ board, labels, onUpdate }: BoardProps) {
           ) : (
             <button
               onClick={() => setShowNewColumn(true)}
-              className="w-full px-4 py-3 text-sm text-slate-500 bg-slate-800/30 rounded-xl border border-dashed border-slate-700/50 hover:border-slate-600 hover:text-slate-400 transition-colors"
+              className="w-full px-4 py-3 text-sm text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-300 dark:border-slate-700/50 hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-500 dark:hover:text-slate-400 transition-colors"
             >
               + Add column
             </button>

@@ -15,7 +15,7 @@ export function CardComponent({ card, labels, onUpdate }: CardProps) {
     <>
       <div
         onClick={() => setShowDetail(true)}
-        className="bg-slate-900/80 rounded-lg p-3 border border-slate-700/50 hover:border-slate-600 cursor-pointer transition-all hover:shadow-lg hover:shadow-slate-900/50 group"
+        className="bg-slate-50 dark:bg-slate-900/80 rounded-lg p-3 border border-slate-200 dark:border-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600 cursor-pointer transition-all hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 group"
       >
         {/* Labels */}
         {card.labels.length > 0 && (
@@ -32,26 +32,26 @@ export function CardComponent({ card, labels, onUpdate }: CardProps) {
           </div>
         )}
 
-        <p className="text-sm text-slate-200 group-hover:text-white transition-colors">
+        <p className="text-sm text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
           {card.title}
         </p>
 
         {/* Metadata */}
         <div className="flex items-center gap-3 mt-2">
           {card.due_date && (
-            <span className="text-[11px] text-slate-500">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
               {new Date(card.due_date).toLocaleDateString()}
             </span>
           )}
           {card.time_estimate && (
-            <span className="text-[11px] text-slate-500">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
               {card.time_estimate >= 60
                 ? `${Math.floor(card.time_estimate / 60)}h${card.time_estimate % 60 ? ` ${card.time_estimate % 60}m` : ""}`
                 : `${card.time_estimate}m`}
             </span>
           )}
           {card.description && (
-            <span className="text-[11px] text-slate-600" title="Has description">
+            <span className="text-[11px] text-slate-300 dark:text-slate-600" title="Has description">
               &#9776;
             </span>
           )}
